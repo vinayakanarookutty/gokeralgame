@@ -115,11 +115,13 @@ export const CameraPiP = ({
     async function startCamera() {
       try {
         setCameraError(null);
+        const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: isFacingUser ? 'user' : 'environment',
-            width: { ideal: 640 },
-            height: { ideal: 480 },
+            width: { ideal: isMobileDevice ? 480 : 640 },
+            height: { ideal: isMobileDevice ? 360 : 480 },
+            frameRate: { ideal: 30, max: 30 },
           },
           audio: false,
         });

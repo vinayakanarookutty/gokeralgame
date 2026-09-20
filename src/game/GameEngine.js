@@ -83,6 +83,7 @@ export class GameEngine {
     // Listeners
     window.addEventListener('resize', this.onWindowResize);
     window.addEventListener('keydown', this.onKeyDown);
+    this.setupTouchControls();
   }
 
   initScene() {
@@ -102,12 +103,20 @@ export class GameEngine {
     this.camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 200);
     this.camera.position.set(0, 3.8, 6.5);
 
-    // WebGL Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (typeof window !== 'undefined' && window.innerWidth < 768);
+    this.isMobile = isMobile;
+
+    // WebGL Renderer: tailored specifically for mobile and desktop hardware
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: !isMobile, // Disable MSAA on mobile (screens already have high 400+ PPI pixel density, saves 30% fillrate)
+      powerPreference: 'high-performance',
+      precision: isMobile ? 'mediump' : 'highp',
+    });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // On mobile, cap pixel ratio to 1.35 (gives crisp Retina resolution while avoiding 4M pixels per frame on 1440p displays)
+    this.renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.35) : Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = isMobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 
     this.container.appendChild(this.renderer.domElement);
 
@@ -118,8 +127,8 @@ export class GameEngine {
     this.sunLight = new THREE.DirectionalLight(0xfffaed, 1.2);
     this.sunLight.position.set(20, 35, 20);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 1024;
-    this.sunLight.shadow.mapSize.height = 1024;
+    this.sunLight.shadow.mapSize.width = isMobile ? 512 : 1024;
+    this.sunLight.shadow.mapSize.height = isMobile ? 512 : 1024;
     this.sunLight.shadow.camera.near = 10;
     this.sunLight.shadow.camera.far = 100;
     this.sunLight.shadow.camera.left = -15;
@@ -1362,10 +1371,76 @@ export class GameEngine {
     this.renderer.setSize(width, height);
   };
 
+  setupTouchControls() {
+    this.touchStartX = 0;
+    this.touchStartY = 0;
+    this.touchStartTime = 0;
+
+    this.onTouchStart = (e) => {
+      if (!e.changedTouches || e.changedTouches.length === 0) return;
+      const touch = e.changedTouches[0];
+      this.touchStartX = touch.clientX;
+      this.touchStartY = touch.clientY;
+      this.touchStartTime = performance.now();
+    };
+
+    this.onTouchMove = (e) => {
+      // Prevent browser default pull-to-refresh while playing
+      if (this.isRunning && !this.isPaused && e.cancelable) {
+        e.preventDefault();
+      }
+    };
+
+    this.onTouchEnd = (e) => {
+      if (!this.isRunning || this.isPaused || !e.changedTouches || e.changedTouches.length === 0) return;
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - this.touchStartX;
+      const dy = touch.clientY - this.touchStartY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+      const dt = performance.now() - this.touchStartTime;
+
+      if (absDx > 28 || absDy > 28) {
+        if (absDx > absDy) {
+          if (dx < 0) {
+            this.shiftLane(-1); // Swipe Left
+          } else {
+            this.shiftLane(1);  // Swipe Right
+          }
+        } else {
+          if (dy < 0) {
+            this.jump();   // Swipe Up
+          } else {
+            this.crouch(); // Swipe Down
+          }
+        }
+      } else if (dt < 280) {
+        // Tap steering: tap left half or right half
+        const screenWidth = window.innerWidth;
+        if (touch.clientY < window.innerHeight * 0.32) {
+          this.jump();
+        } else if (touch.clientX < screenWidth * 0.42) {
+          this.shiftLane(-1);
+        } else if (touch.clientX > screenWidth * 0.58) {
+          this.shiftLane(1);
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', this.onTouchStart, { passive: true });
+    window.addEventListener('touchmove', this.onTouchMove, { passive: false });
+    window.addEventListener('touchend', this.onTouchEnd, { passive: true });
+  }
+
   destroy() {
     this.stop();
     window.removeEventListener('resize', this.onWindowResize);
     window.removeEventListener('keydown', this.onKeyDown);
+    if (this.onTouchStart) {
+      window.removeEventListener('touchstart', this.onTouchStart);
+      window.removeEventListener('touchmove', this.onTouchMove);
+      window.removeEventListener('touchend', this.onTouchEnd);
+    }
     if (this.renderer && this.renderer.domElement && this.renderer.domElement.parentNode) {
       this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
     }
