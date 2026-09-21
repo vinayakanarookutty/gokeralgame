@@ -955,7 +955,19 @@ export class GameEngine {
 
   // --- Main Game Loop ---
 
+  warmup() {
+    try {
+      if (this.renderer && this.scene && this.camera) {
+        this.renderer.compile(this.scene, this.camera);
+        this.renderer.render(this.scene, this.camera);
+      }
+    } catch (e) {
+      console.warn('GPU warmup warning:', e);
+    }
+  }
+
   start() {
+    if (this.isRunning && !this.isPaused) return;
     this.isRunning = true;
     this.isPaused = false;
     this.clock.start();

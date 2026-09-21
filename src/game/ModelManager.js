@@ -16,6 +16,18 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
+export const ASSET_NAMES = {
+  countryRoad: '3D Country Highway Roadway',
+  coconut: '3D Tender Coconuts & Items',
+  autorickshaw: '3D Kerala Auto-rickshaws (TukTuk)',
+  coconutPalm: '3D Coconut Palm Tree Canopies',
+  wagonr: '3D Suzuki Wagon R Vehicles',
+  fisherBoat: '3D Backwater Fisher Boats',
+  tree: '3D Tropical Rain Trees',
+  riverJetty: '3D River Jetty & Boatyard',
+  blindvan: '3D Suzuki Carry Commercial Vans',
+};
+
 export class ModelManager {
   constructor() {
     this.loader = new GLTFLoader();
@@ -31,7 +43,13 @@ export class ModelManager {
       riverJetty: false,
       fisherBoat: false,
     };
+    this.failedStatus = {};
+    this.totalModels = 9;
     this.onModelReadyCallbacks = [];
+    this.onProgressCallbacks = [];
+    this.preloadPromise = null;
+    this._resolvePreload = null;
+    this._isPreloadTriggered = false;
   }
 
   onModelReady(cb) {
@@ -48,7 +66,56 @@ export class ModelManager {
     });
   }
 
+  onProgress(cb) {
+    this.onProgressCallbacks.push(cb);
+    // Send immediate initial progress
+    try {
+      cb(this.getProgress());
+    } catch (e) {
+      console.error('Error in initial onProgress callback:', e);
+    }
+    return () => {
+      this.onProgressCallbacks = this.onProgressCallbacks.filter((c) => c !== cb);
+    };
+  }
+
+  getProgress() {
+    const keys = Object.keys(this.loadingStatus);
+    const loadedCount = keys.filter((k) => this.loadingStatus[k]).length;
+    const completedCount = keys.filter((k) => this.loadingStatus[k] || this.failedStatus[k]).length;
+    const total = this.totalModels;
+    const percent = Math.min(100, Math.round((completedCount / total) * 100));
+    return {
+      loadedCount,
+      completedCount,
+      totalCount: total,
+      percent,
+      isAllLoaded: completedCount >= total,
+      statusMap: { ...this.loadingStatus },
+    };
+  }
+
+  checkLoadingProgress(name, isSuccess) {
+    const progress = this.getProgress();
+    progress.currentItem = ASSET_NAMES[name] || name;
+    progress.lastResult = isSuccess ? 'SUCCESS' : 'FAILED';
+    this.onProgressCallbacks.forEach((cb) => {
+      try {
+        cb(progress);
+      } catch (e) {
+        console.error('Error in onProgress callback:', e);
+      }
+    });
+
+    if (progress.isAllLoaded && this._resolvePreload) {
+      const resolver = this._resolvePreload;
+      this._resolvePreload = null;
+      resolver(progress);
+    }
+  }
+
   notifyModelReady(name) {
+    this.checkLoadingProgress(name, true);
     this.onModelReadyCallbacks.forEach((cb) => {
       try {
         cb(name, this.templates[name]);
@@ -58,8 +125,47 @@ export class ModelManager {
     });
   }
 
+  notifyModelFailed(name, err) {
+    this.failedStatus[name] = true;
+    console.warn(`Asset ${name} fallback engaged:`, err);
+    this.checkLoadingProgress(name, false);
+  }
+
   isReady(name) {
     return Boolean(this.loadingStatus[name] && this.templates[name]);
+  }
+
+  areAllReady() {
+    const keys = Object.keys(this.loadingStatus);
+    return keys.every((k) => this.loadingStatus[k]);
+  }
+
+  /**
+   * Preload all models and return a Promise that resolves when all assets are loaded.
+   */
+  preloadAll(onProgress) {
+    if (onProgress) {
+      this.onProgress(onProgress);
+    }
+
+    const currentProgress = this.getProgress();
+    if (currentProgress.isAllLoaded) {
+      if (onProgress) {
+        onProgress({ ...currentProgress, percent: 100, currentItem: 'All 3D Assets Ready' });
+      }
+      return Promise.resolve(currentProgress);
+    }
+
+    if (this.preloadPromise) {
+      return this.preloadPromise;
+    }
+
+    this.preloadPromise = new Promise((resolve) => {
+      this._resolvePreload = resolve;
+      this.loadAll();
+    });
+
+    return this.preloadPromise;
   }
 
   /**
@@ -101,32 +207,24 @@ export class ModelManager {
   }
 
   /**
-   * Preload models in prioritized stages for immediate mobile responsiveness:
-   * Stage 1: Road, Coconuts, Auto-rickshaw (Ready in ~1.0s on mobile)
-   * Stage 2: Roadside Palms, Wagon R, Fisher Boat
-   * Stage 3: Background low-poly trees, River Jetty, Blind Van
+   * Preload all 9 3D assets in parallel for highest speed
    */
   loadAll() {
+    if (this._isPreloadTriggered) return;
+    this._isPreloadTriggered = true;
+
     THREE.Cache.enabled = true;
 
-    // Stage 1: Instant Core Run Loop
+    // Trigger core and scenery assets
     this.loadCountryRoad();
     this.loadTenderCoconut();
     this.loadAutoRickshaw();
-
-    // Stage 2: Primary Scenery & Traffic (200ms stagger avoids network saturation)
-    setTimeout(() => {
-      this.loadCoconutPalm();
-      this.loadWagonR();
-      this.loadFisherBoat();
-    }, 200);
-
-    // Stage 3: Depth & Extended Variety
-    setTimeout(() => {
-      this.loadTreeLowPoly();
-      this.loadRiverJetty();
-      this.loadBlindVan();
-    }, 500);
+    this.loadCoconutPalm();
+    this.loadWagonR();
+    this.loadFisherBoat();
+    this.loadTreeLowPoly();
+    this.loadRiverJetty();
+    this.loadBlindVan();
   }
 
   /**
@@ -157,6 +255,7 @@ export class ModelManager {
       },
       (err) => {
         console.warn('Could not load /models/country_road.glb:', err);
+        this.notifyModelFailed('countryRoad', err);
       }
     );
   }
@@ -217,6 +316,7 @@ export class ModelManager {
       },
       (err) => {
         console.warn('Could not load /models/2013_suzuki_wagonr.glb:', err);
+        this.notifyModelFailed('wagonr', err);
       }
     );
   }
@@ -277,6 +377,7 @@ export class ModelManager {
       },
       (err) => {
         console.warn('Could not load /models/suzuki_carry_blind_van.glb:', err);
+        this.notifyModelFailed('blindvan', err);
       }
     );
   }
@@ -330,6 +431,7 @@ export class ModelManager {
       },
       (err) => {
         console.warn('Could not load /models/low_poly_autorickshaw_aka_tuktuk.glb:', err);
+        this.notifyModelFailed('autorickshaw', err);
       }
     );
   }
@@ -395,10 +497,12 @@ export class ModelManager {
           this.notifyModelReady('coconut');
         } catch (e) {
           console.error('Error processing day_252_tender_coconut.glb:', e);
+          this.notifyModelFailed('coconut', e);
         }
       },
       (err) => {
         console.warn('Could not load /models/day_252_tender_coconut.glb:', err);
+        this.notifyModelFailed('coconut', err);
       }
     );
   }
@@ -451,10 +555,12 @@ export class ModelManager {
           this.notifyModelReady('coconutPalm');
         } catch (e) {
           console.error('Error processing coconut_palm.glb:', e);
+          this.notifyModelFailed('coconutPalm', e);
         }
       },
       (err) => {
         console.warn('Could not load /models/coconut_palm.glb:', err);
+        this.notifyModelFailed('coconutPalm', err);
       }
     );
   }
@@ -508,10 +614,12 @@ export class ModelManager {
           this.notifyModelReady('tree');
         } catch (e) {
           console.error('Error processing trees_low_poly.glb:', e);
+          this.notifyModelFailed('tree', e);
         }
       },
       (err) => {
         console.warn('Could not load /models/trees_low_poly.glb:', err);
+        this.notifyModelFailed('tree', err);
       }
     );
   }
@@ -561,10 +669,12 @@ export class ModelManager {
           this.notifyModelReady('riverJetty');
         } catch (e) {
           console.error('Error processing river_jetty_and_boatyard.glb:', e);
+          this.notifyModelFailed('riverJetty', e);
         }
       },
       (err) => {
         console.warn('Could not load /models/river_jetty_and_boatyard.glb:', err);
+        this.notifyModelFailed('riverJetty', err);
       }
     );
   }
@@ -615,10 +725,12 @@ export class ModelManager {
           this.notifyModelReady('fisherBoat');
         } catch (e) {
           console.error('Error processing fisher_boat.glb:', e);
+          this.notifyModelFailed('fisherBoat', e);
         }
       },
       (err) => {
         console.warn('Could not load /models/fisher_boat.glb:', err);
+        this.notifyModelFailed('fisherBoat', err);
       }
     );
   }

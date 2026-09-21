@@ -13,6 +13,7 @@ export const GameCanvas = ({
   onLocationDiscovered,
   gestureInput,
   engineRef,
+  isStarted = true,
 }) => {
   const containerRef = useRef(null);
   const internalEngineRef = useRef(null);
@@ -30,7 +31,12 @@ export const GameCanvas = ({
       engineRef.current = engine;
     }
 
-    engine.start();
+    // Warm up GPU scene and precompile Three.js materials & shaders
+    engine.warmup();
+
+    if (isStarted) {
+      engine.start();
+    }
 
     return () => {
       engine.destroy();
@@ -40,6 +46,15 @@ export const GameCanvas = ({
       }
     };
   }, []);
+
+  // Handle start/pause lifecycle transitions when isStarted changes
+  useEffect(() => {
+    if (internalEngineRef.current) {
+      if (isStarted && !internalEngineRef.current.isRunning) {
+        internalEngineRef.current.start();
+      }
+    }
+  }, [isStarted]);
 
   // Forward gesture updates directly into the engine
   useEffect(() => {

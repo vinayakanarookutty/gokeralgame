@@ -11,16 +11,18 @@ import { GameCanvas } from './game/GameCanvas';
 import { CameraPiP } from './components/CameraPiP';
 import { GameHUD } from './components/GameHUD';
 import { MainMenu } from './components/MainMenu';
+import { LoadingScreen } from './components/LoadingScreen';
 import { CalibrationModal } from './components/CalibrationModal';
 import { KeralaMapModal } from './components/KeralaMapModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { TourismDiscoveryModal } from './components/TourismDiscoveryModal';
 import { GameOverModal } from './components/GameOverModal';
 import { audioEngine } from './services/AudioEngine';
+import { modelManager } from './game/ModelManager';
 
 export const App = () => {
-  // Game State
-  const [gameState, setGameState] = useState('MENU'); // 'MENU', 'PLAYING', 'PAUSED', 'GAME_OVER'
+  // Game State: 'MENU', 'LOADING', 'PLAYING', 'PAUSED', 'GAME_OVER'
+  const [gameState, setGameState] = useState('MENU');
   const [hudData, setHudData] = useState({
     score: 0,
     distance: 0,
@@ -63,6 +65,13 @@ export const App = () => {
 
   const engineRef = useRef(null);
 
+  // Background preload models early while user is in Main Menu
+  useEffect(() => {
+    modelManager.preloadAll().catch((err) => {
+      console.warn('Early background preload notice:', err);
+    });
+  }, []);
+
   // Handle gesture received from Camera PiP directly to engine to prevent 60fps React re-renders
   const handleGestureDetected = (data) => {
     if (engineRef.current) {
@@ -84,10 +93,14 @@ export const App = () => {
     }
   };
 
-  // Game lifecycle
+  // Game lifecycle: Menu -> Loading -> Playing
   const handleStartGame = () => {
-    setGameState('PLAYING');
     audioEngine.init();
+    setGameState('LOADING');
+  };
+
+  const handleLoadingComplete = () => {
+    setGameState('PLAYING');
     if (engineRef.current) {
       engineRef.current.start();
     }
@@ -138,12 +151,11 @@ export const App = () => {
   };
 
   const handleRestart = () => {
-    setGameState('PLAYING');
     setGameOverStats(null);
     if (engineRef.current) {
       engineRef.current.destroy();
     }
-    // Re-mount happens via key change
+    setGameState('LOADING');
   };
 
   // On-screen touch swipe fallback
@@ -162,7 +174,7 @@ export const App = () => {
   return (
     <View style={styles.appContainer}>
       {/* 3D Game Canvas (Three.js) */}
-      {(gameState === 'PLAYING' || gameState === 'PAUSED') && (
+      {(gameState === 'LOADING' || gameState === 'PLAYING' || gameState === 'PAUSED') && (
         <GameCanvas
           key={gameOverStats ? 'game-restarted' : 'game-active'}
           engineRef={engineRef}
@@ -170,6 +182,15 @@ export const App = () => {
           onHUDUpdate={setHudData}
           onGameOver={handleGameOver}
           onLocationDiscovered={handleLocationDiscovered}
+          isStarted={gameState === 'PLAYING'}
+        />
+      )}
+
+      {/* 3D Asset & Engine Preloading Screen */}
+      {gameState === 'LOADING' && (
+        <LoadingScreen
+          onReady={handleLoadingComplete}
+          isRestart={Boolean(gameOverStats)}
         />
       )}
 
