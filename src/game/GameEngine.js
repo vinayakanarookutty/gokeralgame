@@ -134,6 +134,7 @@ export class GameEngine {
     this.sunLight.position.set(20, 35, 20);
     this.sunLight.castShadow = !isMobile;
     if (!isMobile) {
+      this.sunLight.shadow.bias = -0.0008;
       this.sunLight.shadow.mapSize.width = 1024;
       this.sunLight.shadow.mapSize.height = 1024;
       this.sunLight.shadow.camera.near = 10;
@@ -475,7 +476,159 @@ export class GameEngine {
 
     this.scene.add(this.playerGroup);
     this.customRunnerModel = null;
-    console.log('✓ Created gorgeous, highly premium, textured human Kerala Kasavu runner!');
+
+    // 3D Animated Mixamo Runner Integration (Running.fbx, Jumping Up.fbx, Running Slide.fbx)
+    this.animatedRunnerGroup = null;
+    this.runnerMixer = null;
+    this.runnerActions = {};
+    this.currentRunnerActionName = null;
+
+    if (modelManager.isReady('runner')) {
+      this.initAnimatedRunner();
+    }
+
+    modelManager.onModelReady((name) => {
+      if (name === 'runner') {
+        this.initAnimatedRunner();
+      } else if (name === 'runnerJump' && this.runnerMixer && modelManager.runnerData.clips['jump']) {
+        const jumpClip = modelManager.runnerData.clips['jump'];
+        const act = this.runnerMixer.clipAction(jumpClip);
+        act.setLoop(THREE.LoopOnce);
+        act.clampWhenFinished = true;
+        this.runnerActions['jump'] = act;
+        console.log('✓ Registered 3D Jump Action in Runner Mixer!');
+      } else if (name === 'runnerSlide' && this.runnerMixer && modelManager.runnerData.clips['slide']) {
+        const slideClip = modelManager.runnerData.clips['slide'];
+        const act = this.runnerMixer.clipAction(slideClip);
+        act.setLoop(THREE.LoopOnce);
+        act.clampWhenFinished = true;
+        this.runnerActions['slide'] = act;
+        console.log('✓ Registered 3D Slide Action in Runner Mixer!');
+      }
+    });
+
+    console.log('✓ Runner initialized with procedural fallback and Mixamo 3D loader!');
+  }
+
+  initAnimatedRunner() {
+    if (this.animatedRunnerGroup) return;
+    const runnerInst = modelManager.getRunnerInstance();
+    if (!runnerInst || !runnerInst.mesh) return;
+
+    this.animatedRunnerGroup = runnerInst.mesh;
+    this.animatedRunnerGroup.visible = true;
+
+    // Safety sweep: strip all rig lines, curves, locators, and non-skinned bone visualizer meshes
+    const toRemove = [];
+    this.animatedRunnerGroup.traverse((child) => {
+      if (
+        child.isLine ||
+        child.isLineSegments ||
+        child.isPoints ||
+        child.type === 'Line' ||
+        child.type === 'LineSegments' ||
+        child.type === 'Points' ||
+        (child.isMesh && !child.isSkinnedMesh)
+      ) {
+        child.visible = false;
+        toRemove.push(child);
+        return;
+      }
+      if (child.isSkinnedMesh) {
+        child.frustumCulled = false; // Prevent clipping on screen edges
+        child.castShadow = !this.isMobile;
+        child.receiveShadow = false; // Disable self-shadowing to eliminate acne stripes
+        if (child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach((m) => {
+            m.wireframe = false;
+          });
+        }
+      }
+    });
+    toRemove.forEach((c) => {
+      if (c.parent) c.parent.remove(c);
+    });
+
+    this.playerGroup.add(this.animatedRunnerGroup);
+
+    // Hide procedural runner body so only the 3D animated model is visible
+    if (this.bodyRoot) {
+      this.bodyRoot.visible = false;
+    }
+    if (this.pelvis) {
+      this.pelvis.visible = false;
+    }
+
+    // Set up AnimationMixer with the cloned skeleton
+    this.runnerMixer = new THREE.AnimationMixer(this.animatedRunnerGroup);
+    this.runnerActions = {};
+
+    const clips = runnerInst.clips || {};
+    if (clips.run) {
+      const act = this.runnerMixer.clipAction(clips.run);
+      act.setLoop(THREE.LoopRepeat);
+      act.setEffectiveWeight(1.0);
+      act.play();
+      this.runnerActions['run'] = act;
+      this.currentRunnerActionName = 'run';
+    }
+    if (clips.jump) {
+      const act = this.runnerMixer.clipAction(clips.jump);
+      act.setLoop(THREE.LoopOnce);
+      act.clampWhenFinished = true;
+      this.runnerActions['jump'] = act;
+    }
+    if (clips.slide) {
+      const act = this.runnerMixer.clipAction(clips.slide);
+      act.setLoop(THREE.LoopOnce);
+      act.clampWhenFinished = true;
+      this.runnerActions['slide'] = act;
+    }
+
+    // Auto-recovery: when jump or slide animation completes, smoothly return to running loop
+    this.runnerMixer.addEventListener('finished', (e) => {
+      if (e.action === this.runnerActions['jump'] || e.action === this.runnerActions['slide']) {
+        if (!this.isJumping && !this.isCrouching) {
+          this.playRunnerAction('run');
+        }
+      }
+    });
+
+    console.log('✓ 3D Animated Mixamo Runner activated with running, jumping, and sliding actions!');
+  }
+
+  playRunnerAction(actionName) {
+    if (!this.runnerMixer || !this.runnerActions) return;
+    const nextAction = this.runnerActions[actionName];
+    if (!nextAction) return;
+
+    if (this.currentRunnerActionName === actionName && nextAction.isRunning() && nextAction.getEffectiveWeight() > 0.5) {
+      return;
+    }
+
+    const prevAction = this.runnerActions[this.currentRunnerActionName];
+
+    // Restore weight and active state so animation never gets stuck or frozen
+    nextAction.enabled = true;
+    nextAction.paused = false;
+    nextAction.setEffectiveTimeScale(1.0);
+    nextAction.setEffectiveWeight(1.0);
+    nextAction.reset();
+
+    if (actionName === 'run') {
+      nextAction.setLoop(THREE.LoopRepeat);
+      nextAction.clampWhenFinished = false;
+    } else {
+      nextAction.setLoop(THREE.LoopOnce, 1);
+      nextAction.clampWhenFinished = true;
+    }
+
+    if (prevAction && prevAction !== nextAction) {
+      prevAction.crossFadeTo(nextAction, 0.12, true);
+    }
+    nextAction.play();
+    this.currentRunnerActionName = actionName;
   }
 
   buildTrack() {
@@ -868,7 +1021,7 @@ export class GameEngine {
   }
 
   setupRainParticles() {
-    const count = 700;
+    const count = this.isMobile ? 220 : 700;
     const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(count * 3);
 
@@ -977,6 +1130,7 @@ export class GameEngine {
       this.jumpVelocity = 14.5;
       this.gravity = -30;
       audioEngine.playJumpSound();
+      this.playRunnerAction('jump');
     }
   }
 
@@ -988,8 +1142,11 @@ export class GameEngine {
     if (!this.isCrouching) {
       this.isCrouching = true;
       this.crouchTimer = 0.8; // seconds
-      this.playerGroup.scale.set(1.0, 0.45, 1.0); // Compress character vertically
+      if (!this.animatedRunnerGroup) {
+        this.playerGroup.scale.set(1.0, 0.45, 1.0); // Compress procedural model
+      }
       audioEngine.playSlideSound();
+      this.playRunnerAction('slide');
     }
   }
 
@@ -1073,7 +1230,8 @@ export class GameEngine {
   animate = () => {
     if (!this.isRunning || this.isPaused) return;
 
-    const delta = Math.min(this.clock.getDelta(), 0.1);
+    const rawDelta = this.clock.getDelta();
+    const delta = Math.min(rawDelta, this.isMobile ? 0.045 : 0.075);
     this.update(delta);
     this.renderer.render(this.scene, this.camera);
 
@@ -1138,6 +1296,9 @@ export class GameEngine {
         this.playerY = 0;
         this.isJumping = false;
         this.jumpVelocity = 0;
+        if (!this.isCrouching) {
+          this.playRunnerAction('run');
+        }
       }
       this.playerGroup.position.y = this.playerY;
     }
@@ -1148,31 +1309,43 @@ export class GameEngine {
       if (this.crouchTimer <= 0) {
         this.isCrouching = false;
         this.playerGroup.scale.set(1.0, 1.0, 1.0); // Reset height
+        if (!this.isJumping) {
+          this.playRunnerAction('run');
+        }
       }
     }
 
-    // 7. Humanoid Running Limb & Joint Animation (Articulated Sprint Kinematics)
-    this.runAnimPhase += delta * this.speed * 0.95;
-    const limbSwing = Math.sin(this.runAnimPhase) * 0.78;
+    // 7. Update 3D FBX Animation Mixer
+    if (this.runnerMixer) {
+      // Dynamic sync with player speed!
+      const animSpeedMultiplier = Math.max(0.85, Math.min(2.5, this.speed / this.baseSpeed));
+      this.runnerMixer.update(delta * animSpeedMultiplier);
+    }
 
-    // Shoulder & Arm swings
-    if (this.leftArmPivot) this.leftArmPivot.rotation.x = limbSwing;
-    if (this.rightArmPivot) this.rightArmPivot.rotation.x = -limbSwing;
+    // Procedural Limb Animation (active when animated FBX runner is loading or not available)
+    if (!this.animatedRunnerGroup) {
+      this.runAnimPhase += delta * this.speed * 0.95;
+      const limbSwing = Math.sin(this.runAnimPhase) * 0.78;
 
-    // Hip & Thigh swings
-    if (this.leftLegPivot) this.leftLegPivot.rotation.x = -limbSwing;
-    if (this.rightLegPivot) this.rightLegPivot.rotation.x = limbSwing;
+      // Shoulder & Arm swings
+      if (this.leftArmPivot) this.leftArmPivot.rotation.x = limbSwing;
+      if (this.rightArmPivot) this.rightArmPivot.rotation.x = -limbSwing;
 
-    // Dynamic Knee Flexion (Knees bend backwards on rear stride up to ~75 degrees!)
-    if (this.leftKneePivot) this.leftKneePivot.rotation.x = Math.max(0, limbSwing * 1.15);
-    if (this.rightKneePivot) this.rightKneePivot.rotation.x = Math.max(0, -limbSwing * 1.15);
+      // Hip & Thigh swings
+      if (this.leftLegPivot) this.leftLegPivot.rotation.x = -limbSwing;
+      if (this.rightLegPivot) this.rightLegPivot.rotation.x = limbSwing;
 
-    // Torso counter-rotation (Subtle human spinal twist)
-    if (this.torso) this.torso.rotation.y = -limbSwing * 0.12;
+      // Dynamic Knee Flexion
+      if (this.leftKneePivot) this.leftKneePivot.rotation.x = Math.max(0, limbSwing * 1.15);
+      if (this.rightKneePivot) this.rightKneePivot.rotation.x = Math.max(0, -limbSwing * 1.15);
 
-    // Vertical stride bounce and banking tilt
-    const stepBounce = Math.abs(Math.sin(this.runAnimPhase * 2)) * 0.07;
-    if (this.bodyRoot) this.bodyRoot.position.y = stepBounce;
+      // Torso counter-rotation
+      if (this.torso) this.torso.rotation.y = -limbSwing * 0.12;
+
+      // Vertical stride bounce and banking tilt
+      const stepBounce = Math.abs(Math.sin(this.runAnimPhase * 2)) * 0.07;
+      if (this.bodyRoot) this.bodyRoot.position.y = stepBounce;
+    }
     this.playerGroup.rotation.z = (this.playerTargetX - this.playerX) * -0.22;
 
     // 7b. Dynamic Smashed Objects Physics (Gaja Power smash launch)

@@ -15,6 +15,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 export const ASSET_NAMES = {
@@ -27,12 +28,18 @@ export const ASSET_NAMES = {
   tree: '3D Tropical Rain Trees',
   riverJetty: '3D River Jetty & Boatyard',
   blindvan: '3D Suzuki Carry Commercial Vans',
+  runner: '3D Animated Kerala Runner (Mixamo)',
 };
 
 export class ModelManager {
   constructor() {
     this.loader = new GLTFLoader();
+    this.fbxLoader = new FBXLoader();
     this.templates = {};
+    this.runnerData = {
+      character: null,
+      clips: {},
+    };
     this.loadingStatus = {
       wagonr: false,
       blindvan: false,
@@ -43,9 +50,10 @@ export class ModelManager {
       tree: false,
       riverJetty: false,
       fisherBoat: false,
+      runner: false,
     };
     this.failedStatus = {};
-    this.totalModels = 9;
+    this.totalModels = 10;
     this.onModelReadyCallbacks = [];
     this.onProgressCallbacks = [];
     this.preloadPromise = null;
@@ -57,9 +65,10 @@ export class ModelManager {
     this.onModelReadyCallbacks.push(cb);
     // Immediately invoke for any models that are already loaded
     Object.keys(this.loadingStatus).forEach((name) => {
-      if (this.loadingStatus[name] && this.templates[name]) {
+      const template = this.templates[name] || (name === 'runner' ? this.runnerData.character : null);
+      if (this.loadingStatus[name] && template) {
         try {
-          cb(name, this.templates[name]);
+          cb(name, template);
         } catch (e) {
           console.error(`Error in immediate onModelReady callback for ${name}:`, e);
         }
@@ -133,7 +142,7 @@ export class ModelManager {
   }
 
   isReady(name) {
-    return Boolean(this.loadingStatus[name] && this.templates[name]);
+    return Boolean(this.loadingStatus[name] && (this.templates[name] || (name === 'runner' && this.runnerData.character)));
   }
 
   areAllReady() {
@@ -226,6 +235,7 @@ export class ModelManager {
     this.loadTreeLowPoly();
     this.loadRiverJetty();
     this.loadBlindVan();
+    this.loadRunnerFBX();
   }
 
   /**
@@ -829,6 +839,214 @@ export class ModelManager {
       isRiverBoat: true,
     };
     return clone;
+  }
+
+  /**
+   * Load Mixamo FBX Runner: Running.fbx, Jumping Up.fbx, Running Slide.fbx
+   */
+  loadRunnerFBX() {
+    this.fbxLoader.load(
+      '/models/Running.fbx',
+      (fbx) => {
+        try {
+          const runClip = fbx.animations && fbx.animations[0];
+          if (runClip) {
+            runClip.name = 'run';
+            this.sanitizeMixamoClip(runClip, true);
+            this.runnerData.clips['run'] = runClip;
+          }
+
+          // Strip all rig lines, curves, locators, and non-skinned bone visualizer meshes
+          const toRemove = [];
+          fbx.traverse((child) => {
+            console.log('>>> FBX CHILD:', child.name, '| type:', child.type, '| isMesh:', child.isMesh, '| isSkinnedMesh:', child.isSkinnedMesh, '| parent:', child.parent?.name);
+            // 1. Remove all lines, curves, line segments, points
+            if (
+              child.isLine ||
+              child.isLineSegments ||
+              child.isPoints ||
+              child.type === 'Line' ||
+              child.type === 'LineSegments' ||
+              child.type === 'Points'
+            ) {
+              child.visible = false;
+              toRemove.push(child);
+              return;
+            }
+
+            // 2. Remove all non-skinned meshes (bone visualizers, pole vector markers, dummy boxes, diamonds)
+            // Real Mixamo character body, clothing, hair, and shoes are ALWAYS SkinnedMesh.
+            if (child.isMesh && !child.isSkinnedMesh) {
+              child.visible = false;
+              toRemove.push(child);
+              return;
+            }
+
+            // 3. For all real SkinnedMeshes:
+            if (child.isSkinnedMesh) {
+              child.castShadow = true;
+              child.receiveShadow = false; // Disable self-shadowing to eliminate shadow acne lines
+              if (child.material) {
+                const mats = Array.isArray(child.material) ? child.material : [child.material];
+                mats.forEach((m) => {
+                  m.wireframe = false;
+                  m.roughness = 0.65;
+                  m.metalness = 0.05;
+                });
+              }
+            }
+          });
+
+          toRemove.forEach((c) => {
+            if (c.parent) c.parent.remove(c);
+          });
+
+          // Scale model to human proportions (~1.85m tall)
+          const box = new THREE.Box3().setFromObject(fbx);
+          const size = box.getSize(new THREE.Vector3());
+          const targetHeight = 1.85;
+          const scale = targetHeight / (size.y || 170);
+          fbx.scale.setScalar(scale);
+
+          // Rotate to face down the road (towards negative Z)
+          fbx.rotation.y = Math.PI;
+
+          // Re-measure bottom to ensure feet plant on ground (y = 0)
+          const scaledBox = new THREE.Box3().setFromObject(fbx);
+          fbx.position.y = -scaledBox.min.y;
+
+          this.runnerData.character = fbx;
+          this.templates.runner = fbx;
+          this.loadingStatus.runner = true;
+          console.log('✓ 3D Animated Runner loaded successfully from Running.fbx!');
+          this.notifyModelReady('runner');
+
+          // Load secondary animations in background
+          this.loadJumpFBX();
+          this.loadSlideFBX();
+        } catch (err) {
+          console.error('Error processing Running.fbx:', err);
+          this.notifyModelFailed('runner', err);
+        }
+      },
+      undefined,
+      (err) => {
+        console.warn('Running.fbx failed to load, keeping procedural fallback:', err);
+        this.notifyModelFailed('runner', err);
+      }
+    );
+  }
+
+  loadJumpFBX() {
+    this.fbxLoader.load(
+      '/models/Jumping Up.fbx',
+      (jumpFbx) => {
+        try {
+          const jumpClip = jumpFbx.animations && jumpFbx.animations[0];
+          if (jumpClip) {
+            jumpClip.name = 'jump';
+            this.sanitizeMixamoClip(jumpClip, false); // Keep Y for jump height
+            this.runnerData.clips['jump'] = jumpClip;
+            console.log('✓ 3D Jump animation loaded successfully!');
+            this.notifyModelReady('runnerJump');
+          }
+        } catch (e) {
+          console.warn('Error processing Jumping Up.fbx:', e);
+        }
+      },
+      undefined,
+      (err) => console.warn('Jumping Up.fbx load failed:', err)
+    );
+  }
+
+  loadSlideFBX() {
+    this.fbxLoader.load(
+      '/models/Running Slide.fbx',
+      (slideFbx) => {
+        try {
+          const slideClip = slideFbx.animations && slideFbx.animations[0];
+          if (slideClip) {
+            slideClip.name = 'slide';
+            this.sanitizeMixamoClip(slideClip, true);
+            this.runnerData.clips['slide'] = slideClip;
+            console.log('✓ 3D Slide animation loaded successfully!');
+            this.notifyModelReady('runnerSlide');
+          }
+        } catch (e) {
+          console.warn('Error processing Running Slide.fbx:', e);
+        }
+      },
+      undefined,
+      (err) => console.warn('Running Slide.fbx load failed:', err)
+    );
+  }
+
+  /**
+   * Neutralize root motion drift (keeps runner centered on lane and in place)
+   */
+  sanitizeMixamoClip(clip, lockZ = true) {
+    if (!clip || !clip.tracks) return;
+    clip.tracks.forEach((track) => {
+      const name = track.name.toLowerCase();
+      if (name.includes('hips.position') || name.includes('root.position')) {
+        const vals = track.values;
+        const firstX = vals[0];
+        const firstZ = vals[2];
+        for (let i = 0; i < vals.length; i += 3) {
+          vals[i] = firstX; // Lock sideways drift
+          if (lockZ) {
+            vals[i + 2] = firstZ; // Lock forward drift
+          }
+        }
+      }
+    });
+  }
+
+  getRunnerInstance() {
+    if (!this.runnerData.character) return null;
+    let clone = null;
+    try {
+      clone = SkeletonUtils.clone(this.runnerData.character);
+    } catch (e) {
+      console.warn('SkeletonUtils.clone fallback to direct mesh:', e);
+      clone = this.runnerData.character;
+    }
+
+    // Safety sweep on clone to remove any remaining line segments, points, or non-skinned meshes
+    const linesToRemove = [];
+    clone.traverse((child) => {
+      if (
+        child.isLine ||
+        child.isLineSegments ||
+        child.isPoints ||
+        child.type === 'Line' ||
+        child.type === 'LineSegments' ||
+        child.type === 'Points' ||
+        (child.isMesh && !child.isSkinnedMesh)
+      ) {
+        child.visible = false;
+        linesToRemove.push(child);
+        return;
+      }
+      if (child.isSkinnedMesh && child.material) {
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((m) => {
+          m.wireframe = false;
+        });
+      }
+    });
+    linesToRemove.forEach((c) => {
+      if (c.parent) c.parent.remove(c);
+    });
+
+    clone.visible = true;
+    clone.userData = {
+      isAnimatedRunner: true,
+    };
+    return {
+      mesh: clone,
+      clips: { ...this.runnerData.clips },
+    };
   }
 }
 

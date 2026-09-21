@@ -28,7 +28,7 @@ export default defineConfig({
     port: 3000,
     host: true,
     watch: {
-      ignored: ['**/*.glb', '**/*.gltf', '**/runner-in-gray/**', '**/*.bin', '**/*.apk', '**/android/**'],
+      ignored: ['**/*.glb', '**/*.gltf', '**/*.fbx', '**/runner-in-gray/**', '**/*.bin', '**/*.apk', '**/android/**'],
     },
   },
 });
