@@ -8,11 +8,24 @@ export default defineConfig({
       'react-native': 'react-native-web',
     },
   },
+  build: {
+    target: 'es2020',
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three'],
+          react: ['react', 'react-dom'],
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     host: true,
     watch: {
-      ignored: ['**/*.glb', '**/*.gltf', '**/runner-in-gray/**', '**/*.bin'],
+      ignored: ['**/*.glb', '**/*.gltf', '**/runner-in-gray/**', '**/*.bin', '**/*.apk', '**/android/**'],
     },
   },
 });
