@@ -8,14 +8,48 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { LOCATIONS } from '../game/KeralaWorlds';
 
 const MAP_NODES = [
-  { id: 'KASARAGOD', name: 'Bekal & Kasaragod', kmTarget: 0, unlocked: true, icon: '🏰' },
-  { id: 'WAYANAD', name: 'Wayanad Rainforest', kmTarget: 1.8, unlocked: true, icon: '🌧️' },
-  { id: 'KOZHIKODE', name: 'Kozhikode Malabar', kmTarget: 2.5, unlocked: true, icon: '⛵' },
-  { id: 'THRISSUR', name: 'Thrissur Pooram', kmTarget: 1.2, unlocked: true, icon: '🐘' },
-  { id: 'MUNNAR', name: 'Munnar Tea Hills', kmTarget: 0.6, unlocked: true, icon: '🌿' },
-  { id: 'ALAPPUZHA', name: 'Alappuzha Backwaters', kmTarget: 0, unlocked: true, icon: '🌴' },
-  { id: 'KOCHI', name: 'Fort Kochi Coast', kmTarget: 3.2, unlocked: false, icon: '🎣' },
-  { id: 'KOVALAM', name: 'Kovalam & Varkala Cliffs', kmTarget: 2.4, unlocked: true, icon: '🌊' },
+  {
+    id: 'ALAPPUZHA',
+    name: 'Alappuzha Backwaters',
+    sub: 'Active Infinite Run • Venice of the East',
+    status: 'ACTIVE',
+    icon: '🌴',
+  },
+  {
+    id: 'KOCHI',
+    name: 'Fort Kochi Coast',
+    sub: 'Next Map (Coming Soon) • Queen of Arabian Sea',
+    status: 'NEXT',
+    icon: '🎣',
+  },
+  {
+    id: 'MUNNAR',
+    name: 'Munnar Tea Hills',
+    sub: 'Upcoming World • High Ranges of Western Ghats',
+    status: 'LOCKED',
+    icon: '🌿',
+  },
+  {
+    id: 'THRISSUR',
+    name: 'Thrissur Pooram',
+    sub: 'Upcoming World • Festival of Festivals',
+    status: 'LOCKED',
+    icon: '🐘',
+  },
+  {
+    id: 'WAYANAD',
+    name: 'Wayanad Rainforest',
+    sub: 'Upcoming World • Monsoon Wilderness',
+    status: 'LOCKED',
+    icon: '🌧️',
+  },
+  {
+    id: 'KOVALAM',
+    name: 'Kovalam & Varkala Cliffs',
+    sub: 'Upcoming World • Arabian Sea Coastline',
+    status: 'LOCKED',
+    icon: '🌊',
+  },
 ];
 
 export const KeralaMapModal = ({ isOpen, onClose, currentDistanceKm = 0, onSelectLocation }) => {
@@ -26,7 +60,7 @@ export const KeralaMapModal = ({ isOpen, onClose, currentDistanceKm = 0, onSelec
       <View style={styles.card}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>KERALA JOURNEY MAP</Text>
-          <Text style={styles.headerSubtitle}>Traverse the Spice Coast through Body Movement</Text>
+          <Text style={styles.headerSubtitle}>Current World: Alappuzha Infinite Sprint</Text>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
             <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
@@ -35,40 +69,39 @@ export const KeralaMapModal = ({ isOpen, onClose, currentDistanceKm = 0, onSelec
         <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
           <View style={styles.timeline}>
             {MAP_NODES.map((node, index) => {
-              const isUnlocked = currentDistanceKm >= node.kmTarget;
+              const isActive = node.status === 'ACTIVE';
+              const isNext = node.status === 'NEXT';
+
               return (
                 <View key={node.id} style={styles.timelineItem}>
                   {/* Node Connector Line */}
                   {index < MAP_NODES.length - 1 && <View style={styles.connectorLine} />}
 
                   {/* Marker Dot */}
-                  <View style={[styles.marker, isUnlocked && styles.markerUnlocked]}>
+                  <View style={[styles.marker, isActive && styles.markerUnlocked, isNext && { borderColor: '#00f0ff' }]}>
                     <Text style={styles.markerIcon}>{node.icon}</Text>
                   </View>
 
                   {/* Details Card */}
-                  <TouchableOpacity
-                    style={[styles.nodeDetails, isUnlocked && styles.nodeDetailsUnlocked]}
-                    onPress={() => {
-                      if (isUnlocked && LOCATIONS[node.id] && onSelectLocation) {
-                        onSelectLocation(LOCATIONS[node.id]);
-                        onClose();
-                      }
-                    }}
-                    disabled={!isUnlocked}
+                  <View
+                    style={[
+                      styles.nodeDetails,
+                      isActive && styles.nodeDetailsUnlocked,
+                      isNext && { borderColor: 'rgba(0, 240, 255, 0.4)', backgroundColor: 'rgba(0, 240, 255, 0.05)' },
+                    ]}
                   >
                     <View style={styles.nodeHeaderRow}>
                       <Text style={styles.nodeTitle}>{node.name}</Text>
-                      {isUnlocked ? (
-                        <Text style={styles.unlockedTag}>EXPLORED</Text>
+                      {isActive ? (
+                        <Text style={[styles.unlockedTag, { backgroundColor: '#ffd700', color: '#111' }]}>CURRENT MAP</Text>
+                      ) : isNext ? (
+                        <Text style={[styles.lockedTag, { color: '#00f0ff', borderColor: '#00f0ff' }]}>NEXT MAP</Text>
                       ) : (
-                        <Text style={styles.lockedTag}>🔒 {node.kmTarget} KM</Text>
+                        <Text style={styles.lockedTag}>UPCOMING</Text>
                       )}
                     </View>
-                    <Text style={styles.nodeSub}>
-                      {isUnlocked ? 'Click to set starting environment' : `Run ${node.kmTarget} km with gestures to unlock`}
-                    </Text>
-                  </TouchableOpacity>
+                    <Text style={styles.nodeSub}>{node.sub}</Text>
+                  </View>
                 </View>
               );
             })}

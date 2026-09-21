@@ -11,7 +11,7 @@ export const LOCATIONS = {
   ALAPPUZHA: {
     id: 'ALAPPUZHA',
     name: 'Alappuzha Backwaters',
-    subtitle: 'Venice of the East',
+    subtitle: 'Venice of the East (Active Infinite Run)',
     skyColor: 0x76c5f0,
     fogColor: 0xa1dbf5,
     fogNear: 25,
@@ -19,8 +19,22 @@ export const LOCATIONS = {
     groundColor: 0x1f4722, // Lush palm riverbank
     roadColor: 0xd6b586,   // Village pathway / sand
     waterColor: 0x1a738c,
-    description: 'Run alongside serene backwaters, houseboats, and coconut groves.',
+    description: 'Run alongside serene backwaters, houseboats, and coconut groves in an endless sprint.',
     fact: 'Alappuzha backwaters connect over 900 km of interconnected canals, rivers, and lakes.',
+  },
+  KOCHI: {
+    id: 'KOCHI',
+    name: 'Fort Kochi Coast',
+    subtitle: 'Queen of the Arabian Sea (Next Map - Coming Soon)',
+    skyColor: 0x5ba8d1,
+    fogColor: 0x8ec8e3,
+    fogNear: 25,
+    fogFar: 95,
+    groundColor: 0xd4a76a,
+    roadColor: 0x6e6359,
+    waterColor: 0x145a75,
+    description: 'Historic Fort Kochi coastline with giant Chinese fishing nets and colonial streets.',
+    fact: 'Kochi has been a bustling spice trade hub for over 600 years, connecting India with Arabia and Europe.',
   },
   MUNNAR: {
     id: 'MUNNAR',

@@ -10,6 +10,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { KeralaWorldBuilder, LOCATIONS } from './KeralaWorlds.js';
 import { audioEngine } from '../services/AudioEngine.js';
 import { modelManager } from './ModelManager.js';
+import { createRunnerMaterials } from './RunnerTextures.js';
 
 export class GameEngine {
   constructor(containerElement, callbacks = {}) {
@@ -57,8 +58,8 @@ export class GameEngine {
     this.powerUpDuration = 8.0;
     this.hasShield = false;
 
-    // Location Progression
-    this.locationKeys = ['ALAPPUZHA', 'MUNNAR', 'THRISSUR', 'WAYANAD', 'KOVALAM'];
+    // Location Progression: Dedicated Infinite Run in Alappuzha Backwaters
+    this.locationKeys = ['ALAPPUZHA'];
     this.currentLocationIndex = 0;
     this.currentLocation = LOCATIONS.ALAPPUZHA;
     this.discoveredLocations = new Set(['ALAPPUZHA']);
@@ -152,241 +153,307 @@ export class GameEngine {
     this.bodyRoot = new THREE.Group();
     this.playerGroup.add(this.bodyRoot);
 
-    // High quality materials with tailored shading
-    const skinMat = new THREE.MeshLambertMaterial({ color: 0x9c6846 }); // Warm Kerala complexion
-    const shirtMat = new THREE.MeshLambertMaterial({ color: 0xfbf8ee }); // Crisp ivory Kasavu shirt
-    const goldMat = new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      metalness: 0.85,
-      roughness: 0.25,
-    }); // Rich Kerala gold zari
-    const dhotiMat = new THREE.MeshLambertMaterial({ color: 0xf5f2e8 }); // Traditional Mundu fabric
-    const hairMat = new THREE.MeshLambertMaterial({ color: 0x161210 }); // Natural dark hair
-    const shoeMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.4,
-      metalness: 0.1,
-    }); // White athletic sneaker upper
-    const soleMat = new THREE.MeshLambertMaterial({ color: 0x1f1f1f }); // Sneaker rubber sole
+    // Ultra-High-Resolution Procedural PBR Materials
+    const mats = createRunnerMaterials();
+    this.runnerMats = mats;
 
     // 1. Pelvis & Waist (center of mass ~0.94m)
     this.pelvis = new THREE.Group();
     this.pelvis.position.set(0, 0.94, 0);
     this.bodyRoot.add(this.pelvis);
 
-    // Traditional Kerala Dhoti / Kasavu Mundu (athletic folded running wrap)
-    const munduHipGeo = new THREE.CylinderGeometry(0.24, 0.22, 0.32, 14);
-    this.mundu = new THREE.Mesh(munduHipGeo, dhotiMat);
+    // Traditional Kerala Folded Mundu (Athletic knee-length wrap with grand Kasavu Gold Kara border)
+    const munduHipGeo = new THREE.CylinderGeometry(0.245, 0.225, 0.35, 16);
+    this.mundu = new THREE.Mesh(munduHipGeo, mats.munduMat);
     this.mundu.castShadow = true;
+    this.mundu.receiveShadow = true;
     this.pelvis.add(this.mundu);
 
-    // Golden Kasavu Waistband / Belt (Aranjanam / Zari Border)
-    const beltGeo = new THREE.CylinderGeometry(0.246, 0.246, 0.07, 16);
-    const belt = new THREE.Mesh(beltGeo, goldMat);
-    belt.position.y = 0.12;
+    // Golden Kasavu Waistband / Aranjanam Belt with Zari weave
+    const beltGeo = new THREE.CylinderGeometry(0.252, 0.252, 0.075, 18);
+    const belt = new THREE.Mesh(beltGeo, mats.goldZariMat);
+    belt.position.y = 0.13;
+    belt.castShadow = true;
     this.pelvis.add(belt);
 
-    // 2. Torso & Upper Body (V-shaped athletic taper)
+    // 2. Torso & Upper Body (Athletic V-taper with Kasavu Shirt & Angavastram)
     this.torso = new THREE.Group();
     this.torso.position.set(0, 0.18, 0); // relative to pelvis
     this.pelvis.add(this.torso);
 
-    // Athletic Torso Mesh (Ivory Kasavu vest)
-    const chestGeo = new THREE.CylinderGeometry(0.25, 0.19, 0.46, 14);
-    const chest = new THREE.Mesh(chestGeo, shirtMat);
-    chest.position.y = 0.23;
+    // Athletic Torso Mesh (Ivory Kasavu shirt with woven texture & golden button placket)
+    const chestGeo = new THREE.CylinderGeometry(0.26, 0.20, 0.48, 16);
+    const chest = new THREE.Mesh(chestGeo, mats.shirtMat);
+    chest.position.y = 0.24;
     chest.castShadow = true;
+    chest.receiveShadow = true;
     this.torso.add(chest);
 
-    // Golden Kasavu Angavastram / Zari Sash draped diagonally across chest
-    const sashGeo = new THREE.BoxGeometry(0.12, 0.48, 0.40);
-    const sash = new THREE.Mesh(sashGeo, goldMat);
-    sash.position.set(-0.06, 0.24, 0);
-    sash.rotation.z = 0.22;
+    // Muscular Pectoral contour under Kasavu vest
+    const pecGeo = new THREE.BoxGeometry(0.34, 0.16, 0.14);
+    const pecs = new THREE.Mesh(pecGeo, mats.shirtMat);
+    pecs.position.set(0, 0.32, 0.10);
+    this.torso.add(pecs);
+
+    // Broad Deltoid Shoulder Caps (Anatomical V-taper)
+    const deltoidGeo = new THREE.SphereGeometry(0.088, 12, 10);
+    deltoidGeo.scale(1.0, 1.15, 0.95);
+
+    const leftDeltoid = new THREE.Mesh(deltoidGeo, mats.shirtMat);
+    leftDeltoid.position.set(-0.25, 0.40, 0);
+    leftDeltoid.castShadow = true;
+    this.torso.add(leftDeltoid);
+
+    const rightDeltoid = new THREE.Mesh(deltoidGeo, mats.shirtMat);
+    rightDeltoid.position.set(0.25, 0.40, 0);
+    rightDeltoid.castShadow = true;
+    this.torso.add(rightDeltoid);
+
+    // Regal Golden Kasavu Angavastram / Zari Sash draped diagonally across chest & back
+    const sashGeo = new THREE.BoxGeometry(0.13, 0.50, 0.42);
+    const sash = new THREE.Mesh(sashGeo, mats.sashMat);
+    sash.position.set(-0.06, 0.25, 0);
+    sash.rotation.z = 0.24;
+    sash.castShadow = true;
     this.torso.add(sash);
 
+    // Fluttering Sash Tail (Dynamic cloth trailing behind waist in the wind!)
+    this.sashTail = new THREE.Group();
+    this.sashTail.position.set(-0.08, 0.05, -0.16);
+    this.torso.add(this.sashTail);
+
+    const sashTailGeo = new THREE.BoxGeometry(0.12, 0.34, 0.02);
+    sashTailGeo.translate(0, -0.17, 0);
+    const sashTailMesh = new THREE.Mesh(sashTailGeo, mats.sashMat);
+    sashTailMesh.castShadow = true;
+    this.sashTail.add(sashTailMesh);
+
     // Collar / Gold Neckline trim
-    const collarGeo = new THREE.TorusGeometry(0.12, 0.022, 8, 16);
+    const collarGeo = new THREE.TorusGeometry(0.125, 0.022, 10, 18);
     collarGeo.rotateX(Math.PI / 2);
-    const collar = new THREE.Mesh(collarGeo, goldMat);
-    collar.position.set(0, 0.46, 0);
+    const collar = new THREE.Mesh(collarGeo, mats.goldZariMat);
+    collar.position.set(0, 0.48, 0);
     this.torso.add(collar);
 
-    // 3. Athletic Neck & Sculpted Head (Beautiful rear profile for 3rd person runner view)
-    const neckGeo = new THREE.CylinderGeometry(0.085, 0.095, 0.14, 12);
-    const neck = new THREE.Mesh(neckGeo, skinMat);
-    neck.position.set(0, 0.52, 0);
+    // 3. Athletic Neck & Sculpted Human Head
+    const neckGeo = new THREE.CylinderGeometry(0.088, 0.098, 0.15, 14);
+    const neck = new THREE.Mesh(neckGeo, mats.skinMat);
+    neck.position.set(0, 0.53, 0);
+    neck.castShadow = true;
     this.torso.add(neck);
 
     // Head Group
     this.head = new THREE.Group();
-    this.head.position.set(0, 0.69, 0);
+    this.head.position.set(0, 0.70, 0);
     this.torso.add(this.head);
 
-    // Sculpted Head Cranium (Clean anatomical head shape, NO backward facial features)
-    const headGeo = new THREE.SphereGeometry(0.155, 16, 14);
-    headGeo.scale(0.9, 1.05, 1.0);
-    const headMesh = new THREE.Mesh(headGeo, skinMat);
+    // Sculpted Head Cranium (Warm Kerala skin tone with natural cranial contours)
+    const headGeo = new THREE.SphereGeometry(0.155, 18, 16);
+    headGeo.scale(0.90, 1.06, 1.02);
+    const headMesh = new THREE.Mesh(headGeo, mats.skinMat);
     headMesh.castShadow = true;
     this.head.add(headMesh);
 
-    // Styled Athletic Hair (Full, handsome tapered hair covering crown and back of head)
-    const hairCapGeo = new THREE.SphereGeometry(0.164, 16, 14);
-    hairCapGeo.scale(0.92, 1.02, 1.02);
-    const hairCap = new THREE.Mesh(hairCapGeo, hairMat);
-    hairCap.position.set(0, 0.03, 0.01);
+    // Athletic Jawline & Chin Definition
+    const jawGeo = new THREE.BoxGeometry(0.14, 0.09, 0.12);
+    const jaw = new THREE.Mesh(jawGeo, mats.skinMat);
+    jaw.position.set(0, -0.06, 0.06);
+    this.head.add(jaw);
+
+    // Anatomical Ears
+    const earGeo = new THREE.SphereGeometry(0.045, 8, 8);
+    earGeo.scale(0.4, 1.0, 0.6);
+    const earL = new THREE.Mesh(earGeo, mats.skinMat);
+    earL.position.set(-0.14, 0.01, -0.01);
+    this.head.add(earL);
+
+    const earR = new THREE.Mesh(earGeo, mats.skinMat);
+    earR.position.set(0.14, 0.01, -0.01);
+    this.head.add(earR);
+
+    // Styled Athletic Hair (Natural hair flow texture covering crown and tapered fade)
+    const hairCapGeo = new THREE.SphereGeometry(0.165, 18, 16);
+    hairCapGeo.scale(0.92, 1.03, 1.03);
+    const hairCap = new THREE.Mesh(hairCapGeo, mats.hairMat);
+    hairCap.position.set(0, 0.03, -0.01);
     this.head.add(hairCap);
 
-    // Traditional Kerala Topknot Bun (Kuduma) on top with gold clasp
-    const knotGeo = new THREE.SphereGeometry(0.065, 12, 12);
-    const knot = new THREE.Mesh(knotGeo, hairMat);
-    knot.position.set(0, 0.17, -0.02);
+    // Traditional Kerala Topknot Bun (Kuduma) on top with gold clasp ring
+    const knotGeo = new THREE.SphereGeometry(0.068, 14, 14);
+    const knot = new THREE.Mesh(knotGeo, mats.hairMat);
+    knot.position.set(0, 0.175, -0.02);
     this.head.add(knot);
 
-    const knotRingGeo = new THREE.TorusGeometry(0.045, 0.015, 8, 16);
+    const knotRingGeo = new THREE.TorusGeometry(0.046, 0.015, 8, 18);
     knotRingGeo.rotateX(Math.PI / 2);
-    const knotRing = new THREE.Mesh(knotRingGeo, goldMat);
-    knotRing.position.set(0, 0.14, -0.02);
+    const knotRing = new THREE.Mesh(knotRingGeo, mats.goldZariMat);
+    knotRing.position.set(0, 0.145, -0.02);
     this.head.add(knotRing);
 
     // Kerala Golden Ribbon Headband (Kasavu Kettu) wrapping around temples
-    const headbandGeo = new THREE.CylinderGeometry(0.158, 0.158, 0.035, 18, 1, true);
-    const headband = new THREE.Mesh(headbandGeo, goldMat);
+    const headbandGeo = new THREE.CylinderGeometry(0.160, 0.160, 0.036, 20, 1, true);
+    const headband = new THREE.Mesh(headbandGeo, mats.bandMat);
     headband.position.set(0, 0.05, 0);
     this.head.add(headband);
 
-    // 4. Articulated Arms (Shoulder Pivot -> Upper Arm -> Elbow Pivot -> Forearm & Fist)
+    // 4. Articulated Muscular Arms (Shoulder Pivot -> Bicep -> Elbow -> Forearm -> Fist)
     // Left Arm
     this.leftArmPivot = new THREE.Group();
-    this.leftArmPivot.position.set(-0.27, 0.38, 0); // Left shoulder joint
+    this.leftArmPivot.position.set(-0.27, 0.40, 0); // Left shoulder joint
     this.torso.add(this.leftArmPivot);
 
-    const upperArmGeo = new THREE.CylinderGeometry(0.052, 0.046, 0.28, 8);
-    upperArmGeo.translate(0, -0.14, 0);
-    const leftUpperArm = new THREE.Mesh(upperArmGeo, skinMat);
+    const upperArmGeo = new THREE.CylinderGeometry(0.055, 0.048, 0.29, 12);
+    upperArmGeo.translate(0, -0.145, 0);
+    const leftUpperArm = new THREE.Mesh(upperArmGeo, mats.skinMat);
     leftUpperArm.castShadow = true;
+    leftUpperArm.receiveShadow = true;
     this.leftArmPivot.add(leftUpperArm);
 
-    // Left Forearm & Hand (Bent naturally at ~75 degrees for athletic running posture)
+    // Left Forearm & Hand (Bent naturally for athletic running posture)
     this.leftForearmPivot = new THREE.Group();
-    this.leftForearmPivot.position.set(0, -0.28, 0);
-    this.leftForearmPivot.rotation.x = 1.25; // Athletic forward running flex
+    this.leftForearmPivot.position.set(0, -0.29, 0);
+    this.leftForearmPivot.rotation.x = 1.32; // Athletic forward flex
     this.leftArmPivot.add(this.leftForearmPivot);
 
-    const forearmGeo = new THREE.CylinderGeometry(0.045, 0.038, 0.26, 8);
-    forearmGeo.translate(0, -0.13, 0);
-    const leftForearm = new THREE.Mesh(forearmGeo, skinMat);
+    const forearmGeo = new THREE.CylinderGeometry(0.048, 0.040, 0.27, 12);
+    forearmGeo.translate(0, -0.135, 0);
+    const leftForearm = new THREE.Mesh(forearmGeo, mats.skinMat);
     leftForearm.castShadow = true;
+    leftForearm.receiveShadow = true;
     this.leftForearmPivot.add(leftForearm);
 
-    // Left Fist
-    const fistGeo = new THREE.SphereGeometry(0.046, 8, 8);
-    const leftHand = new THREE.Mesh(fistGeo, skinMat);
-    leftHand.position.set(0, -0.26, 0);
+    // Athletic Golden Wristband / Kada on left wrist
+    const wristbandGeo = new THREE.CylinderGeometry(0.043, 0.043, 0.035, 14);
+    const leftWristband = new THREE.Mesh(wristbandGeo, mats.goldZariMat);
+    leftWristband.position.set(0, -0.23, 0);
+    this.leftForearmPivot.add(leftWristband);
+
+    // Left Athletic Fist
+    const fistGeo = new THREE.SphereGeometry(0.048, 10, 10);
+    fistGeo.scale(0.9, 1.15, 1.25);
+    const leftHand = new THREE.Mesh(fistGeo, mats.skinMat);
+    leftHand.position.set(0, -0.27, 0.01);
+    leftHand.castShadow = true;
     this.leftForearmPivot.add(leftHand);
 
     // Right Arm
     this.rightArmPivot = new THREE.Group();
-    this.rightArmPivot.position.set(0.27, 0.38, 0); // Right shoulder joint
+    this.rightArmPivot.position.set(0.27, 0.40, 0); // Right shoulder joint
     this.torso.add(this.rightArmPivot);
 
-    const rightUpperArm = new THREE.Mesh(upperArmGeo, skinMat);
+    const rightUpperArm = new THREE.Mesh(upperArmGeo, mats.skinMat);
     rightUpperArm.castShadow = true;
+    rightUpperArm.receiveShadow = true;
     this.rightArmPivot.add(rightUpperArm);
 
     this.rightForearmPivot = new THREE.Group();
-    this.rightForearmPivot.position.set(0, -0.28, 0);
-    this.rightForearmPivot.rotation.x = 1.25;
+    this.rightForearmPivot.position.set(0, -0.29, 0);
+    this.rightForearmPivot.rotation.x = 1.32;
     this.rightArmPivot.add(this.rightForearmPivot);
 
-    const rightForearm = new THREE.Mesh(forearmGeo, skinMat);
+    const rightForearm = new THREE.Mesh(forearmGeo, mats.skinMat);
     rightForearm.castShadow = true;
+    rightForearm.receiveShadow = true;
     this.rightForearmPivot.add(rightForearm);
 
-    const rightHand = new THREE.Mesh(fistGeo, skinMat);
-    rightHand.position.set(0, -0.26, 0);
+    const rightWristband = new THREE.Mesh(wristbandGeo, mats.goldZariMat);
+    rightWristband.position.set(0, -0.23, 0);
+    this.rightForearmPivot.add(rightWristband);
+
+    const rightHand = new THREE.Mesh(fistGeo, mats.skinMat);
+    rightHand.position.set(0, -0.27, 0.01);
+    rightHand.castShadow = true;
     this.rightForearmPivot.add(rightHand);
 
     // Aliases
     this.leftArm = this.leftArmPivot;
     this.rightArm = this.rightArmPivot;
 
-    // 5. Articulated Legs (Hip Pivot -> Thigh -> Knee Pivot -> Calf & Sneaker)
+    // 5. Articulated Legs (Hip Pivot -> Quadriceps -> Knee Pivot -> Muscular Calf & Pro Sneakers)
     // Left Leg
     this.leftLegPivot = new THREE.Group();
-    this.leftLegPivot.position.set(-0.13, -0.12, 0); // Hip joint in pelvis
+    this.leftLegPivot.position.set(-0.135, -0.12, 0); // Hip joint in pelvis
     this.pelvis.add(this.leftLegPivot);
 
-    const thighGeo = new THREE.CylinderGeometry(0.072, 0.058, 0.38, 10);
-    thighGeo.translate(0, -0.19, 0);
-    const leftThigh = new THREE.Mesh(thighGeo, skinMat);
+    // Athletic Thigh with skin tone & quad contour
+    const thighGeo = new THREE.CylinderGeometry(0.076, 0.060, 0.40, 12);
+    thighGeo.translate(0, -0.20, 0);
+    const leftThigh = new THREE.Mesh(thighGeo, mats.skinMat);
     leftThigh.castShadow = true;
+    leftThigh.receiveShadow = true;
     this.leftLegPivot.add(leftThigh);
 
     // Left Knee
     this.leftKneePivot = new THREE.Group();
-    this.leftKneePivot.position.set(0, -0.38, 0);
+    this.leftKneePivot.position.set(0, -0.40, 0);
     this.leftLegPivot.add(this.leftKneePivot);
 
-    const calfGeo = new THREE.CylinderGeometry(0.056, 0.044, 0.36, 10);
-    calfGeo.translate(0, -0.18, 0);
-    const leftCalf = new THREE.Mesh(calfGeo, skinMat);
+    // Sculpted Athletic Calf (Gastrocnemius curvature)
+    const calfGeo = new THREE.CylinderGeometry(0.062, 0.046, 0.38, 12);
+    calfGeo.translate(0, -0.19, 0);
+    const leftCalf = new THREE.Mesh(calfGeo, mats.skinMat);
     leftCalf.castShadow = true;
+    leftCalf.receiveShadow = true;
     this.leftKneePivot.add(leftCalf);
 
-    // Left Running Shoe / Trainer
+    // Left Elite Running Trainer
     const shoeGroupL = new THREE.Group();
-    shoeGroupL.position.set(0, -0.36, 0.05);
+    shoeGroupL.position.set(0, -0.38, 0.05);
     this.leftKneePivot.add(shoeGroupL);
 
-    const shoeUpperGeo = new THREE.BoxGeometry(0.11, 0.08, 0.24);
-    const shoeUpperL = new THREE.Mesh(shoeUpperGeo, shoeMat);
-    shoeUpperL.position.y = 0.04;
+    const shoeUpperGeo = new THREE.BoxGeometry(0.115, 0.085, 0.25);
+    const shoeUpperL = new THREE.Mesh(shoeUpperGeo, mats.shoeMat);
+    shoeUpperL.position.y = 0.042;
     shoeUpperL.castShadow = true;
     shoeGroupL.add(shoeUpperL);
 
-    const soleGeo = new THREE.BoxGeometry(0.12, 0.035, 0.26);
-    const shoeSoleL = new THREE.Mesh(soleGeo, soleMat);
-    shoeSoleL.position.y = -0.018;
+    const soleGeo = new THREE.BoxGeometry(0.125, 0.038, 0.27);
+    const shoeSoleL = new THREE.Mesh(soleGeo, mats.soleMat);
+    shoeSoleL.position.y = -0.02;
+    shoeSoleL.castShadow = true;
     shoeGroupL.add(shoeSoleL);
 
-    const stripeGeo = new THREE.BoxGeometry(0.125, 0.018, 0.14);
-    const stripeL = new THREE.Mesh(stripeGeo, goldMat);
+    // Metallic Gold Racing Swoosh on Sneaker
+    const stripeGeo = new THREE.BoxGeometry(0.130, 0.020, 0.15);
+    const stripeL = new THREE.Mesh(stripeGeo, mats.goldZariMat);
     stripeL.position.set(0, 0.045, 0);
     shoeGroupL.add(stripeL);
 
     // Right Leg
     this.rightLegPivot = new THREE.Group();
-    this.rightLegPivot.position.set(0.13, -0.12, 0); // Hip joint in pelvis
+    this.rightLegPivot.position.set(0.135, -0.12, 0); // Hip joint in pelvis
     this.pelvis.add(this.rightLegPivot);
 
-    const rightThigh = new THREE.Mesh(thighGeo, skinMat);
+    const rightThigh = new THREE.Mesh(thighGeo, mats.skinMat);
     rightThigh.castShadow = true;
+    rightThigh.receiveShadow = true;
     this.rightLegPivot.add(rightThigh);
 
     // Right Knee
     this.rightKneePivot = new THREE.Group();
-    this.rightKneePivot.position.set(0, -0.38, 0);
+    this.rightKneePivot.position.set(0, -0.40, 0);
     this.rightLegPivot.add(this.rightKneePivot);
 
-    const rightCalf = new THREE.Mesh(calfGeo, skinMat);
+    const rightCalf = new THREE.Mesh(calfGeo, mats.skinMat);
     rightCalf.castShadow = true;
+    rightCalf.receiveShadow = true;
     this.rightKneePivot.add(rightCalf);
 
     const shoeGroupR = new THREE.Group();
-    shoeGroupR.position.set(0, -0.36, 0.05);
+    shoeGroupR.position.set(0, -0.38, 0.05);
     this.rightKneePivot.add(shoeGroupR);
 
-    const shoeUpperR = new THREE.Mesh(shoeUpperGeo, shoeMat);
-    shoeUpperR.position.y = 0.04;
+    const shoeUpperR = new THREE.Mesh(shoeUpperGeo, mats.shoeMat);
+    shoeUpperR.position.y = 0.042;
     shoeUpperR.castShadow = true;
     shoeGroupR.add(shoeUpperR);
 
-    const shoeSoleR = new THREE.Mesh(soleGeo, soleMat);
-    shoeSoleR.position.y = -0.018;
+    const shoeSoleR = new THREE.Mesh(soleGeo, mats.soleMat);
+    shoeSoleR.position.y = -0.02;
+    shoeSoleR.castShadow = true;
     shoeGroupR.add(shoeSoleR);
 
-    const stripeR = new THREE.Mesh(stripeGeo, goldMat);
+    const stripeR = new THREE.Mesh(stripeGeo, mats.goldZariMat);
     stripeR.position.set(0, 0.045, 0);
     shoeGroupR.add(stripeR);
 
@@ -408,7 +475,7 @@ export class GameEngine {
 
     this.scene.add(this.playerGroup);
     this.customRunnerModel = null;
-    console.log('✓ Created attractive, athletic, human-like Kerala Kasavu runner character!');
+    console.log('✓ Created gorgeous, highly premium, textured human Kerala Kasavu runner!');
   }
 
   buildTrack() {
@@ -1014,16 +1081,19 @@ export class GameEngine {
   };
 
   update(delta) {
-    // 1. Dynamic Speed Curve
-    let currentSpeed = this.baseSpeed + (this.distance / 120);
+    // 1. Dynamic Progressive Infinite Run Speed Curve:
+    // As the player covers more distance, speed increases smoothly and exhilaratingly!
+    // Starts at 16.0 m/s -> reaches ~23 m/s at 500m, ~29 m/s at 1000m, ~37 m/s at 2000m, up to 45+ m/s
+    const speedBoost = Math.sqrt(this.distance) * 0.32 + (this.distance / 150);
+    let currentSpeed = this.baseSpeed + speedBoost;
     if (this.activePowerUp === 'CHENDA_BOOST') {
-      currentSpeed *= 1.65;
+      currentSpeed *= 1.55;
     } else if (this.activePowerUp === 'MONSOON_MODE') {
       currentSpeed *= 0.75; // Cinematic slow motion
     }
 
     this.speed = currentSpeed;
-    audioEngine.setSpeedMultiplier(this.speed / this.baseSpeed);
+    audioEngine.setSpeedMultiplier(Math.min(2.5, this.speed / this.baseSpeed));
 
     // Move Distance & Score
     const frameDistance = this.speed * delta;
@@ -1042,14 +1112,7 @@ export class GameEngine {
       }
     }
 
-    // 3. Location Progression Check (every 600m travels to next Kerala destination!)
-    const targetLocIndex = Math.min(
-      this.locationKeys.length - 1,
-      Math.floor(this.distance / 600)
-    );
-    if (targetLocIndex !== this.currentLocationIndex) {
-      this.transitionLocation(targetLocIndex);
-    }
+    // 3. Dedicated Infinite Run in Alappuzha (seamless run with no map interruptions)
 
     // 4. Player Kinematics: Critically Damped Smooth Lateral Glide (Zero Glitch / Zero Jitter)
     this.playerX = this.smoothDamp(

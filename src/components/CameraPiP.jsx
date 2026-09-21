@@ -339,22 +339,22 @@ export const CameraPiP = ({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    top: 20,
-    right: 20,
-    width: 220,
-    backgroundColor: 'rgba(10, 24, 18, 0.92)',
+    top: 14,
+    right: 14,
+    width: 170,
+    backgroundColor: 'rgba(10, 24, 18, 0.94)',
     borderRadius: 14,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#d4af37', // Kasavu Gold
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    zIndex: 999,
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    zIndex: 5000,
   },
   wrapperMinimized: {
-    width: 140,
+    width: 110,
   },
   header: {
     flexDirection: 'row',
