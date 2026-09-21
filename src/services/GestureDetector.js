@@ -97,7 +97,7 @@ export class GestureDetector {
         this.useMediaPipe = true;
         this.isProcessing = false;
         this.lastFrameTime = 0;
-        this.targetInterval = isMobile ? 38 : 32; // ~26-30 FPS pose sampling
+        this.targetInterval = isMobile ? 75 : 32; // ~13-14 FPS pose sampling on mobile leaves CPU 100% free for 60FPS Three.js
         console.log('✓ Google MediaPipe Mobile-Optimized Pose Initialized!');
       }
     } catch (err) {

@@ -90,51 +90,58 @@ export class GameEngine {
     const width = this.container.clientWidth || window.innerWidth;
     const height = this.container.clientHeight || window.innerHeight;
 
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (typeof window !== 'undefined' && window.innerWidth < 768);
+    this.isMobile = isMobile;
+
     // Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(this.currentLocation.skyColor);
     this.scene.fog = new THREE.Fog(
       this.currentLocation.fogColor,
-      this.currentLocation.fogNear,
-      this.currentLocation.fogFar
+      isMobile ? 25 : this.currentLocation.fogNear,
+      isMobile ? 100 : this.currentLocation.fogFar
     );
 
-    // Camera
-    this.camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 200);
+    // Camera: adjust far plane on mobile (115 vs 200) to cut off distant geometry passes
+    this.camera = new THREE.PerspectiveCamera(65, width / height, 0.1, isMobile ? 115 : 200);
     this.camera.position.set(0, 3.8, 6.5);
 
-    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (typeof window !== 'undefined' && window.innerWidth < 768);
-    this.isMobile = isMobile;
-
-    // WebGL Renderer: tailored specifically for mobile and desktop hardware
+    // WebGL Renderer: ultra-optimized for mobile 60 FPS
     this.renderer = new THREE.WebGLRenderer({
-      antialias: !isMobile, // Disable MSAA on mobile (screens already have high 400+ PPI pixel density, saves 30% fillrate)
+      antialias: !isMobile, // Screens on mobile have 400+ PPI; disabling MSAA saves 30% fillrate
       powerPreference: 'high-performance',
       precision: isMobile ? 'mediump' : 'highp',
+      depth: true,
+      stencil: false,
     });
     this.renderer.setSize(width, height);
-    // On mobile, cap pixel ratio to 1.35 (gives crisp Retina resolution while avoiding 4M pixels per frame on 1440p displays)
-    this.renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.35) : Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = isMobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    // On mobile, cap pixel ratio strictly to 1.0 (saves 50% GPU fillrate on 1080p/1440p displays)
+    this.renderer.setPixelRatio(isMobile ? 1.0 : Math.min(window.devicePixelRatio, 1.75));
+    // Disable heavy real-time dynamic shadow maps on mobile to maintain rock-solid 60 FPS
+    this.renderer.shadowMap.enabled = !isMobile;
+    if (!isMobile) {
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
 
     this.container.appendChild(this.renderer.domElement);
 
-    // Lighting
-    this.ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    // Lighting: boost ambient on mobile for vibrant Kerala daylight without needing shadow map pass
+    this.ambientLight = new THREE.AmbientLight(0xffffff, isMobile ? 0.92 : 0.75);
     this.scene.add(this.ambientLight);
 
-    this.sunLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+    this.sunLight = new THREE.DirectionalLight(0xfffaed, isMobile ? 1.05 : 1.2);
     this.sunLight.position.set(20, 35, 20);
-    this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = isMobile ? 512 : 1024;
-    this.sunLight.shadow.mapSize.height = isMobile ? 512 : 1024;
-    this.sunLight.shadow.camera.near = 10;
-    this.sunLight.shadow.camera.far = 100;
-    this.sunLight.shadow.camera.left = -15;
-    this.sunLight.shadow.camera.right = 15;
-    this.sunLight.shadow.camera.top = 20;
-    this.sunLight.shadow.camera.bottom = -10;
+    this.sunLight.castShadow = !isMobile;
+    if (!isMobile) {
+      this.sunLight.shadow.mapSize.width = 1024;
+      this.sunLight.shadow.mapSize.height = 1024;
+      this.sunLight.shadow.camera.near = 10;
+      this.sunLight.shadow.camera.far = 100;
+      this.sunLight.shadow.camera.left = -15;
+      this.sunLight.shadow.camera.right = 15;
+      this.sunLight.shadow.camera.top = 20;
+      this.sunLight.shadow.camera.bottom = -10;
+    }
     this.scene.add(this.sunLight);
   }
 
@@ -443,7 +450,7 @@ export class GameEngine {
 
     // Continuous track segments for obstacles, scenery, and collectibles
     this.segmentLength = 40;
-    this.numSegments = 6;
+    this.numSegments = this.isMobile ? 4 : 6;
 
     for (let i = 0; i < this.numSegments; i++) {
       const segZ = -i * this.segmentLength;

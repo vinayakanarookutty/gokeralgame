@@ -119,9 +119,9 @@ export const CameraPiP = ({
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: isFacingUser ? 'user' : 'environment',
-            width: { ideal: isMobileDevice ? 480 : 640 },
-            height: { ideal: isMobileDevice ? 360 : 480 },
-            frameRate: { ideal: 30, max: 30 },
+            width: { ideal: isMobileDevice ? 320 : 640, max: isMobileDevice ? 480 : 1280 },
+            height: { ideal: isMobileDevice ? 240 : 480, max: isMobileDevice ? 360 : 720 },
+            frameRate: { ideal: isMobileDevice ? 15 : 30, max: isMobileDevice ? 20 : 30 },
           },
           audio: false,
         });

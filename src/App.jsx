@@ -12,6 +12,7 @@ import { CameraPiP } from './components/CameraPiP';
 import { GameHUD } from './components/GameHUD';
 import { MainMenu } from './components/MainMenu';
 import { LoadingScreen } from './components/LoadingScreen';
+import { SplashScreen } from './components/SplashScreen';
 import { CalibrationModal } from './components/CalibrationModal';
 import { KeralaMapModal } from './components/KeralaMapModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
@@ -21,8 +22,8 @@ import { audioEngine } from './services/AudioEngine';
 import { modelManager } from './game/ModelManager';
 
 export const App = () => {
-  // Game State: 'MENU', 'LOADING', 'PLAYING', 'PAUSED', 'GAME_OVER'
-  const [gameState, setGameState] = useState('MENU');
+  // Game State: 'SPLASH', 'MENU', 'LOADING', 'PLAYING', 'PAUSED', 'GAME_OVER'
+  const [gameState, setGameState] = useState('SPLASH');
   const [hudData, setHudData] = useState({
     score: 0,
     distance: 0,
@@ -212,6 +213,11 @@ export const App = () => {
         calibrationData={calibrationData}
         onOpenCalibration={() => setIsCalibrationOpen(true)}
       />
+
+      {/* App Launch Intro Splash Screen */}
+      {gameState === 'SPLASH' && (
+        <SplashScreen onFinish={() => setGameState('MENU')} />
+      )}
 
       {/* Main Home Menu */}
       {gameState === 'MENU' && (
