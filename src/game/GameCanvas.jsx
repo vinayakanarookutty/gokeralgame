@@ -7,7 +7,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { GameEngine } from './GameEngine';
 
-export const GameCanvas = ({
+const GameCanvasComponent = ({
   onHUDUpdate,
   onGameOver,
   onLocationDiscovered,
@@ -87,3 +87,6 @@ const styles = StyleSheet.create({
     left: 0,
   },
 });
+
+export const GameCanvas = React.memo(GameCanvasComponent);
+

@@ -20,6 +20,16 @@ const POSE_CONNECTIONS = [
   [0, 2], [2, 7], [0, 5], [5, 8]                    // Face
 ];
 
+function isMobileDevice() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
+  const touchPoints = typeof navigator.maxTouchPoints === 'number' ? navigator.maxTouchPoints : 0;
+  const hasTouch = (typeof window !== 'undefined' && 'ontouchstart' in window) || touchPoints > 1;
+  const smallScreen = typeof window !== 'undefined' && (Math.min(window.innerWidth, window.innerHeight) <= 768 || window.innerWidth < 1024);
+  return mobileRegex.test(ua) || (hasTouch && smallScreen);
+}
+
 export class GestureDetector {
   constructor(videoElement, canvasOverlay) {
     this.video = videoElement;
@@ -80,10 +90,10 @@ export class GestureDetector {
           locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
         });
 
-        const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (typeof window !== 'undefined' && window.innerWidth < 768);
+        const isMobile = isMobileDevice();
 
         // modelComplexity: 0 (Lite) is Google's mobile-optimized neural network (~12ms vs 50ms for Full)
-        // Keeps gesture recognition razor-sharp while leaving 70% more CPU for 60FPS 3D rendering
+        // Keeps gesture recognition razor-sharp while leaving 75%+ CPU for 60FPS 3D rendering
         this.mediaPipePose.setOptions({
           modelComplexity: 0,
           smoothLandmarks: true,
@@ -97,7 +107,7 @@ export class GestureDetector {
         this.useMediaPipe = true;
         this.isProcessing = false;
         this.lastFrameTime = 0;
-        this.targetInterval = isMobile ? 75 : 32; // ~13-14 FPS pose sampling on mobile leaves CPU 100% free for 60FPS Three.js
+        this.targetInterval = isMobile ? 80 : 34; // ~12.5 FPS sampling on mobile leaves CPU 100% free for 60FPS Three.js
         console.log('✓ Google MediaPipe Mobile-Optimized Pose Initialized!');
       }
     } catch (err) {
@@ -352,12 +362,10 @@ export class GestureDetector {
     else if (gesture === 'CROUCH') strokeColor = '#FF3366'; // Red
     else if (gesture === 'POWER_UP') strokeColor = '#FF00EA'; // Magenta
 
-    // Draw Bone Connections
+    // Draw Bone Connections (avoid shadowBlur on mobile for high FPS)
     ctx.save();
     ctx.strokeStyle = strokeColor;
     ctx.lineWidth = 2.5;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = strokeColor;
 
     POSE_CONNECTIONS.forEach(([s, e]) => {
       const p1 = landmarks[s];

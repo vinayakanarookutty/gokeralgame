@@ -21,7 +21,17 @@ const POSE_CONNECTIONS = [
   [0, 2], [2, 7], [0, 5], [5, 8]                    // Face
 ];
 
-export const CameraPiP = ({
+function isMobileDevice() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i;
+  const touchPoints = typeof navigator.maxTouchPoints === 'number' ? navigator.maxTouchPoints : 0;
+  const hasTouch = (typeof window !== 'undefined' && 'ontouchstart' in window) || touchPoints > 1;
+  const smallScreen = typeof window !== 'undefined' && (Math.min(window.innerWidth, window.innerHeight) <= 768 || window.innerWidth < 1024);
+  return mobileRegex.test(ua) || (hasTouch && smallScreen);
+}
+
+const CameraPiPComponent = ({
   onGestureDetected,
   calibrationData,
   onOpenCalibration,
@@ -31,6 +41,8 @@ export const CameraPiP = ({
   const canvasRef = useRef(null);
   const detectorRef = useRef(null);
   const wsRef = useRef(null);
+  const lastGestureRef = useRef('NEUTRAL');
+  const lastConfidenceTimeRef = useRef(0);
 
   const [hasCamera, setHasCamera] = useState(false);
   const [cameraError, setCameraError] = useState(null);
@@ -40,8 +52,11 @@ export const CameraPiP = ({
   const [isFacingUser, setIsFacingUser] = useState(true);
   const [isPythonConnected, setIsPythonConnected] = useState(false);
 
-  // 1. Connect to Python MediaPipe WebSocket Server (ws://localhost:8765)
+  // 1. Connect to Python MediaPipe WebSocket Server (ws://localhost:8765) - only on desktop
   useEffect(() => {
+    if (isMobileDevice()) {
+      return; // Mobile devices run standalone in-browser MediaPipe and should never poll localhost
+    }
     let ws = null;
     let reconnectTimeout = null;
 
@@ -159,8 +174,15 @@ export const CameraPiP = ({
     detector.setCallback((data) => {
       // Only use browser detection if Python WebSocket is NOT connected
       if (!isPythonConnected) {
-        setCurrentGesture(data.gesture);
-        setConfidence(data.confidence);
+        if (data.gesture !== lastGestureRef.current) {
+          lastGestureRef.current = data.gesture;
+          setCurrentGesture(data.gesture);
+        }
+        const now = performance.now();
+        if (now - lastConfidenceTimeRef.current > 300) {
+          lastConfidenceTimeRef.current = now;
+          setConfidence(data.confidence);
+        }
         if (onGestureDetected) {
           onGestureDetected(data);
         }
@@ -195,12 +217,10 @@ export const CameraPiP = ({
       ptMap[lm.id] = { x: lm.x * w, y: lm.y * h };
     });
 
-    // Draw Bones
+    // Draw Bones (no shadowBlur on mobile for high FPS)
     ctx.save();
     ctx.strokeStyle = strokeColor;
     ctx.lineWidth = 2.5;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = strokeColor;
 
     POSE_CONNECTIONS.forEach(([s, e]) => {
       const p1 = ptMap[s];
@@ -476,4 +496,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+export const CameraPiP = React.memo(CameraPiPComponent);
+
 

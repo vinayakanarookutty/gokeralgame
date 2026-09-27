@@ -8,13 +8,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-export const GameHUD = ({
-  hudData,
+const GameHUDComponent = ({
   onPause,
   isPaused,
   onToggleAudio,
   isMuted,
   onSwipeControl,
+  hudData,
 }) => {
   const {
     score = 0,
@@ -304,3 +304,6 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 });
+
+export const GameHUD = React.memo(GameHUDComponent);
+
