@@ -2,15 +2,16 @@
  * CameraPiP.jsx
  * Small Screen Picture-in-Picture camera view.
  * Supports:
- * 1. High-precision Python MediaPipe WebSocket stream (33 joints 3D)
- * 2. In-browser fallback optical heuristic tracker
- * Allows the player to see their own body movement in real time
- * with skeleton tracking overlay, gesture classification, and confidence meter.
+ * 1. Multi-mode Gesture Control (HALF_BODY, HEAD_ONLY, PALM_ONLY)
+ * 2. High-precision Python MediaPipe WebSocket stream (33 joints 3D)
+ * 3. In-browser fallback optical heuristic tracker
+ * Allows the player to see their own body/head/palm movement in real time
+ * with skeleton tracking overlay, gesture classification, mode switching, and confidence meter.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { GestureDetector } from '../services/GestureDetector';
+import { GestureDetector, CONTROL_MODES } from '../services/GestureDetector';
 
 // 33 Landmark Skeleton Bone Connections for Canvas Rendering
 const POSE_CONNECTIONS = [
@@ -36,6 +37,8 @@ const CameraPiPComponent = ({
   calibrationData,
   onOpenCalibration,
   isMinimizedDefault = false,
+  controlMode = CONTROL_MODES.HALF_BODY,
+  onChangeControlMode,
 }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -102,7 +105,6 @@ const CameraPiPComponent = ({
 
         ws.onclose = () => {
           setIsPythonConnected(false);
-          // Retry connecting in background every 3 seconds
           reconnectTimeout = setTimeout(connectWebSocket, 3000);
         };
 
@@ -130,13 +132,13 @@ const CameraPiPComponent = ({
     async function startCamera() {
       try {
         setCameraError(null);
-        const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+        const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: isFacingUser ? 'user' : 'environment',
-            width: { ideal: isMobileDevice ? 320 : 640, max: isMobileDevice ? 480 : 1280 },
-            height: { ideal: isMobileDevice ? 240 : 480, max: isMobileDevice ? 360 : 720 },
-            frameRate: { ideal: isMobileDevice ? 15 : 30, max: isMobileDevice ? 20 : 30 },
+            width: { ideal: isMobile ? 320 : 640, max: isMobile ? 480 : 1280 },
+            height: { ideal: isMobile ? 240 : 480, max: isMobile ? 360 : 720 },
+            frameRate: { ideal: isMobile ? 15 : 30, max: isMobile ? 20 : 30 },
           },
           audio: false,
         });
@@ -166,13 +168,12 @@ const CameraPiPComponent = ({
   useEffect(() => {
     if (!videoRef.current || !canvasRef.current || !hasCamera) return;
 
-    const detector = new GestureDetector(videoRef.current, canvasRef.current);
+    const detector = new GestureDetector(videoRef.current, canvasRef.current, controlMode);
     if (calibrationData) {
       detector.setCalibration(calibrationData);
     }
 
     detector.setCallback((data) => {
-      // Only use browser detection if Python WebSocket is NOT connected
       if (!isPythonConnected) {
         if (data.gesture !== lastGestureRef.current) {
           lastGestureRef.current = data.gesture;
@@ -198,6 +199,13 @@ const CameraPiPComponent = ({
     };
   }, [hasCamera, calibrationData, isPythonConnected]);
 
+  // Synchronize mode changes to the active detector
+  useEffect(() => {
+    if (detectorRef.current && controlMode) {
+      detectorRef.current.setMode(controlMode);
+    }
+  }, [controlMode]);
+
   // Render high-precision 33-landmark skeleton from Python MediaPipe
   const renderPythonSkeleton = (canvas, landmarks, gesture) => {
     const ctx = canvas.getContext('2d');
@@ -217,7 +225,6 @@ const CameraPiPComponent = ({
       ptMap[lm.id] = { x: lm.x * w, y: lm.y * h };
     });
 
-    // Draw Bones (no shadowBlur on mobile for high FPS)
     ctx.save();
     ctx.strokeStyle = strokeColor;
     ctx.lineWidth = 2.5;
@@ -233,7 +240,6 @@ const CameraPiPComponent = ({
       }
     });
 
-    // Draw 33 Joint Circles
     landmarks.forEach((lm) => {
       const px = lm.x * w;
       const py = lm.y * h;
@@ -245,7 +251,6 @@ const CameraPiPComponent = ({
       ctx.stroke();
     });
 
-    // Draw Gesture Directional Banner
     if (gesture !== 'NEUTRAL') {
       ctx.font = 'bold 12px Outfit, sans-serif';
       ctx.fillStyle = strokeColor;
@@ -274,15 +279,24 @@ const CameraPiPComponent = ({
     }
   };
 
+  const getModeTitle = () => {
+    switch (controlMode) {
+      case CONTROL_MODES.HEAD_ONLY:
+        return '👤 HEAD TRACK';
+      case CONTROL_MODES.PALM_ONLY:
+        return '✋ PALM AIR';
+      default:
+        return isPythonConnected ? '🐍 PYTHON POSE' : '🧍 BODY POSE';
+    }
+  };
+
   return (
     <View style={[styles.wrapper, isMinimized && styles.wrapperMinimized]}>
       {/* Header bar */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={[styles.liveDot, (hasCamera || isPythonConnected) && styles.liveDotActive]} />
-          <Text style={styles.headerTitle}>
-            {isPythonConnected ? '🐍 PYTHON POSE (33-PTS)' : 'GESTURE CAM'}
-          </Text>
+          <Text style={styles.headerTitle}>{getModeTitle()}</Text>
         </View>
 
         <View style={styles.headerControls}>
@@ -307,6 +321,63 @@ const CameraPiPComponent = ({
       {/* Main Small Screen Camera Frame */}
       {!isMinimized && (
         <View style={styles.screenContainer}>
+          {/* Quick Control Mode Selector Tabs */}
+          <View style={styles.modeTabBar}>
+            <TouchableOpacity
+              style={[
+                styles.modeTabBtn,
+                controlMode === CONTROL_MODES.HALF_BODY && styles.modeTabBtnActive,
+              ]}
+              onPress={() => onChangeControlMode && onChangeControlMode(CONTROL_MODES.HALF_BODY)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.modeTabBtnText,
+                  controlMode === CONTROL_MODES.HALF_BODY && styles.modeTabBtnTextActive,
+                ]}
+              >
+                🧍 Body
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.modeTabBtn,
+                controlMode === CONTROL_MODES.HEAD_ONLY && styles.modeTabBtnActive,
+              ]}
+              onPress={() => onChangeControlMode && onChangeControlMode(CONTROL_MODES.HEAD_ONLY)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.modeTabBtnText,
+                  controlMode === CONTROL_MODES.HEAD_ONLY && styles.modeTabBtnTextActive,
+                ]}
+              >
+                👤 Head
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.modeTabBtn,
+                controlMode === CONTROL_MODES.PALM_ONLY && styles.modeTabBtnActive,
+              ]}
+              onPress={() => onChangeControlMode && onChangeControlMode(CONTROL_MODES.PALM_ONLY)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.modeTabBtnText,
+                  controlMode === CONTROL_MODES.PALM_ONLY && styles.modeTabBtnTextActive,
+                ]}
+              >
+                ✋ Palm
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {cameraError && !isPythonConnected ? (
             <View style={styles.errorBox}>
               <Text style={styles.errorIcon}>📷</Text>
@@ -343,7 +414,7 @@ const CameraPiPComponent = ({
           <View style={styles.footerHUD}>
             <View style={[styles.gestureBadge, { backgroundColor: getBadgeStyle().backgroundColor }]}>
               <Text style={[styles.gestureBadgeText, { color: getBadgeStyle().color }]}>
-                {currentGesture === 'NEUTRAL' ? '🧍 RUNNING' : currentGesture.replace('_', ' ')}
+                {currentGesture === 'NEUTRAL' ? '● RUNNING' : currentGesture.replace('_', ' ')}
               </Text>
             </View>
             <Text style={styles.confidenceText}>
@@ -361,7 +432,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 14,
     right: 14,
-    width: 170,
+    width: 178,
     backgroundColor: 'rgba(10, 24, 18, 0.94)',
     borderRadius: 14,
     borderWidth: 1.5,
@@ -380,8 +451,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     backgroundColor: 'rgba(212, 175, 55, 0.2)',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(212, 175, 55, 0.3)',
@@ -395,7 +466,7 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 4,
     backgroundColor: '#888',
-    marginRight: 6,
+    marginRight: 5,
   },
   liveDotActive: {
     backgroundColor: '#00ff88',
@@ -404,7 +475,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     color: '#ffd700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   headerControls: {
     flexDirection: 'row',
@@ -412,7 +483,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   headerBtn: {
-    padding: 3,
+    padding: 2,
   },
   headerBtnText: {
     fontSize: 12,
@@ -422,10 +493,39 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 6,
   },
+  // Mode Tab Switcher Bar
+  modeTabBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 8,
+    padding: 2,
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.25)',
+  },
+  modeTabBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  modeTabBtnActive: {
+    backgroundColor: '#d4af37',
+  },
+  modeTabBtnText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#a0b8aa',
+  },
+  modeTabBtnTextActive: {
+    color: '#07170f',
+    fontWeight: '900',
+  },
   videoWrapper: {
     position: 'relative',
     width: '100%',
-    height: 140,
+    height: 136,
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#000',
@@ -448,21 +548,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: 5,
     paddingHorizontal: 2,
   },
   gestureBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
     borderRadius: 6,
   },
   gestureBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   confidenceText: {
-    fontSize: 9,
+    fontSize: 8.5,
     color: '#aaa',
     fontWeight: '600',
   },
@@ -498,5 +598,3 @@ const styles = StyleSheet.create({
 });
 
 export const CameraPiP = React.memo(CameraPiPComponent);
-
-

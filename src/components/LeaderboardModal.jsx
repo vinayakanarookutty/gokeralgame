@@ -1,31 +1,48 @@
 /**
  * LeaderboardModal.jsx
- * Kerala Distance Leaderboard & Regional Champions
+ * Kerala Distance & Score Leaderboard with live database integration.
+ * Fetches rankings from Coolnest Cloud Backend MongoDB.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { getLeaderboardAsync } from '../services/scoreService';
 
-const GLOBAL_LEADERBOARD = [
-  { rank: 1, name: 'Ananya Nair (Kochi)', distance: '14.8 km', location: 'Munnar', badge: '👑' },
-  { rank: 2, name: 'Rahul Varma (Thrissur)', distance: '12.4 km', location: 'Thrissur', badge: '🥈' },
-  { rank: 3, name: 'Fahad Faasil (Alappuzha)', distance: '11.2 km', location: 'Alappuzha', badge: '🥉' },
-  { rank: 4, name: 'YOU (Runner)', distance: '8.9 km', location: 'Alappuzha', badge: '⭐', isYou: true },
-  { rank: 5, name: 'Devika Menon (Calicut)', distance: '7.5 km', location: 'Wayanad' },
-  { rank: 6, name: 'Ashwin Pillai (Trivandrum)', distance: '6.8 km', location: 'Kovalam' },
-];
-
-export const LeaderboardModal = ({ isOpen, onClose, currentStats }) => {
+export const LeaderboardModal = ({ isOpen, onClose, currentStats, playerName = '' }) => {
   if (!isOpen) return null;
 
   const [activeTab, setActiveTab] = useState('GLOBAL');
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const activeRunnerName = playerName || localStorage.getItem('gokerala_player_name') || 'Runner';
+
+  const fetchScores = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getLeaderboardAsync(25);
+      setLeaderboard(data);
+    } catch (e) {
+      console.warn('Error loading leaderboard:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchScores();
+    }
+  }, [isOpen]);
 
   return (
     <View style={styles.overlay}>
       <View style={styles.card}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>KERALA LEADERBOARDS</Text>
-          <Text style={styles.headerSubtitle}>Longest Physical Journeys Through Kerala</Text>
+          <Text style={styles.headerSubtitle}>
+            Live Rankings from Cloud Leaderboard
+          </Text>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
             <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
@@ -38,7 +55,7 @@ export const LeaderboardModal = ({ isOpen, onClose, currentStats }) => {
             onPress={() => setActiveTab('GLOBAL')}
           >
             <Text style={[styles.tabText, activeTab === 'GLOBAL' && styles.tabTextActive]}>
-              🏆 Distance Rankings
+              🏆 Distance & Points
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -51,27 +68,65 @@ export const LeaderboardModal = ({ isOpen, onClose, currentStats }) => {
           </TouchableOpacity>
         </View>
 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '8px 16px',
+          background: 'rgba(0, 0, 0, 0.25)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+        }}>
+          <span style={{ fontSize: 11, color: '#8cb8a3' }}>
+            Runner: <strong style={{ color: '#ffd700' }}>{activeRunnerName}</strong>
+          </span>
+          <button
+            onClick={fetchScores}
+            disabled={isLoading}
+            style={{
+              background: 'transparent',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              color: '#ffd700',
+              padding: '2px 8px',
+              borderRadius: 6,
+              fontSize: 10,
+              cursor: 'pointer',
+            }}
+          >
+            {isLoading ? '⏳ Refreshing...' : '🔄 Refresh'}
+          </button>
+        </div>
+
         <ScrollView style={styles.list}>
           {activeTab === 'GLOBAL' ? (
-            GLOBAL_LEADERBOARD.map((item) => (
-              <View
-                key={item.rank}
-                style={[styles.rankRow, item.isYou && styles.rankRowYou]}
-              >
-                <View style={styles.rankLeft}>
-                  <Text style={styles.rankNumber}>{item.badge || `#${item.rank}`}</Text>
-                  <View>
-                    <Text style={[styles.playerName, item.isYou && styles.playerTextYou]}>
-                      {item.name}
+            leaderboard.map((item) => {
+              const isYou = item.name.toLowerCase() === activeRunnerName.toLowerCase();
+              return (
+                <View
+                  key={item.id || item.rank}
+                  style={[styles.rankRow, isYou && styles.rankRowYou]}
+                >
+                  <View style={styles.rankLeft}>
+                    <Text style={styles.rankNumber}>{item.badge || `#${item.rank}`}</Text>
+                    <View>
+                      <Text style={[styles.playerName, isYou && styles.playerTextYou]}>
+                        {item.name} {isYou ? '⭐ (YOU)' : ''}
+                      </Text>
+                      <Text style={styles.playerLoc}>{item.location}</Text>
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.distanceText, isYou && styles.playerTextYou]}>
+                      {item.distance}
                     </Text>
-                    <Text style={styles.playerLoc}>{item.location}</Text>
+                    {item.score ? (
+                      <Text style={{ fontSize: 10, color: '#ffd700', fontWeight: '700' }}>
+                        {item.score.toLocaleString()} pts
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
-                <Text style={[styles.distanceText, item.isYou && styles.playerTextYou]}>
-                  {item.isYou && currentStats ? `${currentStats.km} km` : item.distance}
-                </Text>
-              </View>
-            ))
+              );
+            })
           ) : (
             <View style={styles.championsList}>
               <View style={styles.champCard}>

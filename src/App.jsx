@@ -1,7 +1,7 @@
 /**
  * App.jsx
  * GoKerala: Gesture Run - Main Application Root
- * Integrates Three.js 3D Engine, Camera PiP Body Gesture Tracking,
+ * Integrates Three.js 3D Engine, Camera PiP Multi-Mode Gesture Tracking,
  * Kerala Levels, Chenda Audio, and Tourism Discovery.
  */
 
@@ -20,6 +20,8 @@ import { TourismDiscoveryModal } from './components/TourismDiscoveryModal';
 import { GameOverModal } from './components/GameOverModal';
 import { audioEngine } from './services/AudioEngine';
 import { modelManager } from './game/ModelManager';
+import { CONTROL_MODES } from './services/GestureDetector';
+import { saveScoreAsync } from './services/scoreService';
 
 export const App = () => {
   // Game State: 'SPLASH', 'MENU', 'LOADING', 'PLAYING', 'PAUSED', 'GAME_OVER'
@@ -36,6 +38,42 @@ export const App = () => {
     powerUpRemaining: 0,
   });
   const [gameOverStats, setGameOverStats] = useState(null);
+
+  // Player Profile Name
+  const [playerName, setPlayerName] = useState(() => {
+    try {
+      return localStorage.getItem('gokerala_player_name') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const handlePlayerNameChange = (name) => {
+    setPlayerName(name);
+    try {
+      localStorage.setItem('gokerala_player_name', name);
+    } catch (e) {
+      console.warn('Could not save player name:', e);
+    }
+  };
+
+  // Playing Mode: 'HALF_BODY' (default upper body), 'HEAD_ONLY' (seated/head tilt), 'PALM_ONLY' (single palm air controller)
+  const [controlMode, setControlMode] = useState(() => {
+    try {
+      return localStorage.getItem('gokerala_control_mode') || CONTROL_MODES.HALF_BODY;
+    } catch (e) {
+      return CONTROL_MODES.HALF_BODY;
+    }
+  });
+
+  const handleSelectControlMode = (mode) => {
+    setControlMode(mode);
+    try {
+      localStorage.setItem('gokerala_control_mode', mode);
+    } catch (e) {
+      console.warn('Could not persist control mode:', e);
+    }
+  };
 
   // Modals
   const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
@@ -123,10 +161,26 @@ export const App = () => {
   };
 
   const handleGameOver = (stats) => {
-    setGameState('GAME_OVER');
-    setGameOverStats(stats);
+    const activeName = (playerName || localStorage.getItem('gokerala_player_name') || 'Runner').trim();
+    const enrichedStats = { ...stats, playerName: activeName };
 
-    // Update records
+    // 1. Immediately transition game over state without waiting for backend API!
+    setGameState('GAME_OVER');
+    setGameOverStats(enrichedStats);
+
+    // 2. Fire-and-forget save to Coolnest Cloud Backend MongoDB
+    saveScoreAsync({
+      playerName: activeName,
+      score: stats.score,
+      km: stats.km,
+      distance: stats.distance,
+      coins: stats.coins,
+      coconuts: stats.coconuts,
+      location: stats.location,
+      controlMode: controlMode,
+    });
+
+    // 3. Update local records
     if (stats.score > highScore) {
       setHighScore(stats.score);
       localStorage.setItem('gokerala_high_score', stats.score.toString());
@@ -204,14 +258,18 @@ export const App = () => {
           onToggleAudio={handleToggleAudio}
           isMuted={isMuted}
           onSwipeControl={handleSwipeControl}
+          controlMode={controlMode}
+          onChangeControlMode={handleSelectControlMode}
         />
       )}
 
-      {/* Camera Picture-in-Picture ("Small Screen" body movement preview) */}
+      {/* Camera Picture-in-Picture ("Small Screen" movement preview) */}
       <CameraPiP
         onGestureDetected={handleGestureDetected}
         calibrationData={calibrationData}
         onOpenCalibration={() => setIsCalibrationOpen(true)}
+        controlMode={controlMode}
+        onChangeControlMode={handleSelectControlMode}
       />
 
       {/* App Launch Intro Splash Screen */}
@@ -219,7 +277,7 @@ export const App = () => {
         <SplashScreen onFinish={() => setGameState('MENU')} />
       )}
 
-      {/* Main Home Menu */}
+      {/* Main Home Menu with Mode Selection */}
       {gameState === 'MENU' && (
         <MainMenu
           onStartGame={handleStartGame}
@@ -228,6 +286,10 @@ export const App = () => {
           onOpenCalibration={() => setIsCalibrationOpen(true)}
           highScore={highScore}
           maxKm={maxKm}
+          controlMode={controlMode}
+          onChangeControlMode={handleSelectControlMode}
+          playerName={playerName}
+          onChangePlayerName={handlePlayerNameChange}
         />
       )}
 
@@ -237,6 +299,8 @@ export const App = () => {
         onClose={() => setIsCalibrationOpen(false)}
         onSaveCalibration={handleSaveCalibration}
         currentTracking={liveTracking}
+        controlMode={controlMode}
+        onChangeControlMode={handleSelectControlMode}
       />
 
       {/* Kerala Journey Map Modal */}
@@ -251,6 +315,7 @@ export const App = () => {
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
         currentStats={hudData}
+        playerName={playerName}
       />
 
       {/* Tourism Cultural Milestone Card */}
@@ -267,6 +332,7 @@ export const App = () => {
         onRestart={handleRestart}
         onOpenMap={() => setIsMapOpen(true)}
         onOpenCalibration={() => setIsCalibrationOpen(true)}
+        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
       />
     </View>
   );

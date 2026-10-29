@@ -1,7 +1,8 @@
 /**
  * GameOverModal.jsx
  * Game over summary screen with Kerala distance stats, collectibles,
- * and quick restart or calibration.
+ * runner profile, and quick restart or calibration.
+ * Shows immediately without waiting for server response.
  */
 
 import React from 'react';
@@ -13,6 +14,7 @@ export const GameOverModal = ({
   onRestart,
   onOpenMap,
   onOpenCalibration,
+  onOpenLeaderboard,
 }) => {
   if (!isOpen) return null;
 
@@ -22,13 +24,32 @@ export const GameOverModal = ({
     coins = 0,
     coconuts = 0,
     location = 'Kerala',
+    playerName = 'Runner',
   } = stats || {};
 
   return (
     <View style={styles.overlay}>
       <View style={styles.card}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'rgba(212, 175, 55, 0.15)',
+          border: '1px solid rgba(212, 175, 55, 0.4)',
+          borderRadius: 20,
+          padding: '4px 12px',
+          marginBottom: 10,
+        }}>
+          <span style={{ fontSize: 13 }}>🏃</span>
+          <span style={{ fontSize: 12, fontWeight: '700', color: '#ffd700', letterSpacing: 0.8 }}>
+            RUNNER: {playerName || 'Runner'}
+          </span>
+        </div>
+
         <Text style={styles.headerTitle}>JOURNEY ENDED</Text>
-        <Text style={styles.headerSubtitle}>You traveled across {location}</Text>
+        <Text style={styles.headerSubtitle}>
+          You traveled across {typeof location === 'object' ? location.name : location}
+        </Text>
 
         <View style={styles.statGrid}>
           <View style={styles.statCard}>
@@ -49,14 +70,38 @@ export const GameOverModal = ({
           </View>
         </View>
 
+        {/* Async sync indicator - non-blocking feedback */}
+        <div style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+          marginBottom: 16,
+          padding: '6px 12px',
+          background: 'rgba(0, 255, 153, 0.08)',
+          borderRadius: 10,
+          border: '1px solid rgba(0, 255, 153, 0.2)',
+        }}>
+          <span style={{ fontSize: 12, color: '#00ff99' }}>⚡</span>
+          <span style={{ fontSize: 11, color: '#a0c7b3', fontWeight: '500' }}>
+            Score sent to cloud database asynchronously
+          </span>
+        </div>
+
         <View style={styles.buttonStack}>
           <TouchableOpacity style={styles.btnPrimary} onPress={onRestart}>
             <Text style={styles.btnPrimaryText}>RUN AGAIN ⚡</Text>
           </TouchableOpacity>
 
           <View style={styles.secondaryRow}>
+            {onOpenLeaderboard && (
+              <TouchableOpacity style={styles.btnSecondary} onPress={onOpenLeaderboard}>
+                <Text style={styles.btnSecondaryText}>🏆 Ranks</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.btnSecondary} onPress={onOpenMap}>
-              <Text style={styles.btnSecondaryText}>🗺️ View Map</Text>
+              <Text style={styles.btnSecondaryText}>🗺️ Map</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnSecondary} onPress={onOpenCalibration}>
               <Text style={styles.btnSecondaryText}>⚙️ Calibrate</Text>
@@ -113,7 +158,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   statCard: {
     flex: 1,

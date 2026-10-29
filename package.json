@@ -1,18 +1,23 @@
 {
   "name": "gokerala-gesture-run",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "GoKerala: Gesture Run - A Kerala-themed 3D Runner controlled by camera body gestures in React Native + Three.js",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "build:apk": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug",
+    "build:aab": "npm run build && npx cap sync android && cd android && gradlew.bat bundleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
     "@capacitor/cli": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/hands": "^0.4.1675469240",
     "@mediapipe/pose": "^0.5.1675469404",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

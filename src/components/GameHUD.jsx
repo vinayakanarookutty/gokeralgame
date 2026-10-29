@@ -2,11 +2,12 @@
  * GameHUD.jsx
  * In-game Heads Up Display:
  * Hearts, KM distance, Kasavu gold coins, location badges, active power-ups,
- * and mobile touch swipe fallback controls.
+ * control mode pill switcher, and mobile touch swipe fallback controls.
  */
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { CONTROL_MODES } from '../services/GestureDetector';
 
 const GameHUDComponent = ({
   onPause,
@@ -15,6 +16,8 @@ const GameHUDComponent = ({
   isMuted,
   onSwipeControl,
   hudData,
+  controlMode = CONTROL_MODES.HALF_BODY,
+  onChangeControlMode,
 }) => {
   const {
     score = 0,
@@ -43,6 +46,30 @@ const GameHUDComponent = ({
   };
 
   const powerUpInfo = getPowerUpLabel();
+
+  const handleCycleMode = () => {
+    if (!onChangeControlMode) return;
+    if (controlMode === CONTROL_MODES.HALF_BODY) {
+      onChangeControlMode(CONTROL_MODES.HEAD_ONLY);
+    } else if (controlMode === CONTROL_MODES.HEAD_ONLY) {
+      onChangeControlMode(CONTROL_MODES.PALM_ONLY);
+    } else {
+      onChangeControlMode(CONTROL_MODES.HALF_BODY);
+    }
+  };
+
+  const getModeInfo = () => {
+    switch (controlMode) {
+      case CONTROL_MODES.HEAD_ONLY:
+        return { icon: '👤', text: 'HEAD', color: '#00e5ff' };
+      case CONTROL_MODES.PALM_ONLY:
+        return { icon: '✋', text: 'PALM', color: '#ffd700' };
+      default:
+        return { icon: '🧍', text: 'BODY', color: '#00ff99' };
+    }
+  };
+
+  const modeInfo = getModeInfo();
 
   return (
     <View style={styles.hudOverlay} pointerEvents="box-none">
@@ -79,6 +106,17 @@ const GameHUDComponent = ({
               </Text>
             </View>
           )}
+
+          {/* Mode Pill (Tap to Cycle) */}
+          <TouchableOpacity
+            style={[styles.statPill, styles.modePill, { borderColor: modeInfo.color }]}
+            onPress={handleCycleMode}
+            accessibilityLabel="Cycle Gesture Control Mode"
+          >
+            <Text style={styles.statIcon}>{modeInfo.icon}</Text>
+            <Text style={[styles.modePillText, { color: modeInfo.color }]}>{modeInfo.text}</Text>
+          </TouchableOpacity>
+
           <View style={styles.statPill}>
             <Text style={styles.statIcon}>🪙</Text>
             <Text style={styles.statValue}>{coins}</Text>
@@ -195,56 +233,51 @@ const styles = StyleSheet.create({
   collectiblesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(10, 26, 18, 0.75)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.3)',
   },
+  modePill: {
+    cursor: 'pointer',
+    gap: 3,
+  },
+  modePillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
   statIcon: {
-    fontSize: 14,
-    marginRight: 4,
+    fontSize: 13,
+    marginRight: 3,
   },
   statValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: '#fff',
   },
   iconBtn: {
     backgroundColor: 'rgba(10, 26, 18, 0.75)',
-    padding: 8,
+    padding: 7,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.3)',
   },
   iconBtnText: {
-    fontSize: 14,
+    fontSize: 13,
   },
   locationSmallText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#9fe3c2',
     marginLeft: 8,
-  },
-  powerUpPill: {
-    alignSelf: 'center',
-    backgroundColor: 'rgba(5, 15, 10, 0.85)',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 18,
-    borderWidth: 2,
-    marginTop: 8,
-  },
-  powerUpText: {
-    fontSize: 13,
-    fontWeight: '900',
-    letterSpacing: 1,
   },
   touchControlsArea: {
     flexDirection: 'row',
@@ -306,4 +339,3 @@ const styles = StyleSheet.create({
 });
 
 export const GameHUD = React.memo(GameHUDComponent);
-
