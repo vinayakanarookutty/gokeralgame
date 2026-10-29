@@ -2,11 +2,21 @@
  * GameOverModal.jsx
  * Game over summary screen with Kerala distance stats, collectibles,
  * runner profile, and quick restart or calibration.
- * Shows immediately without waiting for server response.
+ * Classy Kerala theme, warm humanized travel chronicle, and zero emojis.
  */
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  KasavuCoinIcon,
+  CoconutIcon,
+  RunnerIcon,
+  PlayIcon,
+  TrophyIcon,
+  CompassMapIcon,
+  CalibrationSlidersIcon,
+  KeralaLotusOrnament,
+} from './Icons';
 
 export const GameOverModal = ({
   isOpen,
@@ -24,87 +34,118 @@ export const GameOverModal = ({
     coins = 0,
     coconuts = 0,
     location = 'Kerala',
-    playerName = 'Runner',
+    playerName = 'Traveler',
   } = stats || {};
+
+  const locationName = typeof location === 'object' ? location.name : location;
 
   return (
     <View style={styles.overlay}>
       <View style={styles.card}>
+        {/* Traveler Profile Header Pill */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 6,
-          background: 'rgba(212, 175, 55, 0.15)',
-          border: '1px solid rgba(212, 175, 55, 0.4)',
+          gap: 7,
+          background: 'rgba(212, 175, 55, 0.12)',
+          border: '1px solid rgba(212, 175, 55, 0.45)',
           borderRadius: 20,
-          padding: '4px 12px',
-          marginBottom: 10,
+          padding: '5px 14px',
+          marginBottom: 12,
         }}>
-          <span style={{ fontSize: 13 }}>🏃</span>
-          <span style={{ fontSize: 12, fontWeight: '700', color: '#ffd700', letterSpacing: 0.8 }}>
-            RUNNER: {playerName || 'Runner'}
+          <RunnerIcon size={14} color="#ffd700" />
+          <span style={{ fontSize: 11.5, fontWeight: '800', color: '#ffd700', letterSpacing: 1 }}>
+            TRAVELER: {playerName || 'Traveler'}
           </span>
         </div>
 
-        <Text style={styles.headerTitle}>JOURNEY ENDED</Text>
+        <Text style={styles.headerTitle}>JOURNEY CONCLUDED</Text>
         <Text style={styles.headerSubtitle}>
-          You traveled across {typeof location === 'object' ? location.name : location}
+          You navigated through {locationName}
         </Text>
 
+        {/* 4-Stat Grid with Bespoke Vector Iconography */}
         <View style={styles.statGrid}>
+          {/* Distance */}
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{km}</Text>
             <Text style={styles.statLabel}>KILOMETERS</Text>
           </View>
+
+          {/* Points */}
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{score.toLocaleString()}</Text>
-            <Text style={styles.statLabel}>POINTS</Text>
+            <Text style={styles.statLabel}>EXPEDITION POINTS</Text>
           </View>
+
+          {/* Kasavu Gold Coins */}
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>🪙 {coins}</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <KasavuCoinIcon size={20} color="#ffd700" />
+              <Text style={styles.statValue}>{coins}</Text>
+            </div>
             <Text style={styles.statLabel}>KASAVU COINS</Text>
           </View>
+
+          {/* Tender Coconuts */}
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>🥥 {coconuts}</Text>
-            <Text style={styles.statLabel}>COCONUTS</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CoconutIcon size={20} color="#6ee7b7" />
+              <Text style={styles.statValue}>{coconuts}</Text>
+            </div>
+            <Text style={styles.statLabel}>TENDER COCONUTS</Text>
           </View>
         </View>
 
-        {/* Async sync indicator - non-blocking feedback */}
+        {/* Humanized Sync Feedback */}
         <div style={{
           width: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 6,
-          marginBottom: 16,
-          padding: '6px 12px',
-          background: 'rgba(0, 255, 153, 0.08)',
-          borderRadius: 10,
-          border: '1px solid rgba(0, 255, 153, 0.2)',
+          gap: 8,
+          marginBottom: 18,
+          padding: '8px 14px',
+          background: 'rgba(0, 255, 153, 0.06)',
+          borderRadius: 12,
+          border: '1px solid rgba(0, 255, 153, 0.22)',
+          boxSizing: 'border-box',
         }}>
-          <span style={{ fontSize: 12, color: '#00ff99' }}>⚡</span>
-          <span style={{ fontSize: 11, color: '#a0c7b3', fontWeight: '500' }}>
-            Score sent to cloud database asynchronously
+          <KeralaLotusOrnament size={14} color="#00ff99" />
+          <span style={{ fontSize: 11.5, color: '#b0d6c4', fontWeight: '500', letterSpacing: 0.3 }}>
+            Your journey has been inscribed in the Kerala Chronicle
           </span>
         </div>
 
+        {/* Action Button Stack */}
         <View style={styles.buttonStack}>
-          <TouchableOpacity style={styles.btnPrimary} onPress={onRestart}>
-            <Text style={styles.btnPrimaryText}>RUN AGAIN ⚡</Text>
+          <TouchableOpacity style={styles.btnPrimary} onPress={onRestart} activeOpacity={0.85}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Text style={styles.btnPrimaryText}>BEGIN NEW RUN</Text>
+              <PlayIcon size={13} color="#091c13" />
+            </div>
           </TouchableOpacity>
 
           <View style={styles.secondaryRow}>
             {onOpenLeaderboard && (
-              <TouchableOpacity style={styles.btnSecondary} onPress={onOpenLeaderboard}>
-                <Text style={styles.btnSecondaryText}>🏆 Ranks</Text>
+              <TouchableOpacity style={styles.btnSecondary} onPress={onOpenLeaderboard} activeOpacity={0.8}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <TrophyIcon size={14} color="#ffd700" />
+                  <Text style={styles.btnSecondaryText}>Chronicle</Text>
+                </div>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.btnSecondary} onPress={onOpenMap}>
-              <Text style={styles.btnSecondaryText}>🗺️ Map</Text>
+            <TouchableOpacity style={styles.btnSecondary} onPress={onOpenMap} activeOpacity={0.8}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CompassMapIcon size={14} color="#ffd700" />
+                <Text style={styles.btnSecondaryText}>Kerala Map</Text>
+              </div>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.btnSecondary} onPress={onOpenCalibration}>
-              <Text style={styles.btnSecondaryText}>⚙️ Calibrate</Text>
+            <TouchableOpacity style={styles.btnSecondary} onPress={onOpenCalibration} activeOpacity={0.8}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CalibrationSlidersIcon size={14} color="#ffd700" />
+                <Text style={styles.btnSecondaryText}>Calibrate</Text>
+              </div>
             </TouchableOpacity>
           </View>
         </View>
@@ -120,7 +161,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(2, 8, 5, 0.9)',
+    backgroundColor: 'rgba(2, 10, 6, 0.92)',
+    backdropFilter: 'blur(16px)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3500,
@@ -128,43 +170,41 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    maxWidth: 440,
-    backgroundColor: '#0c2217',
+    maxWidth: 450,
+    backgroundColor: '#0c2318',
     borderRadius: 24,
-    borderWidth: 2,
-    borderColor: '#ffd700',
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.65)',
     padding: 28,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
+    boxShadow: '0 16px 48px rgba(0, 0, 0, 0.8), 0 0 35px rgba(212, 175, 55, 0.22)',
   },
   headerTitle: {
     fontFamily: 'Cinzel, Georgia, serif',
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#ff4d4d',
+    color: '#f87171',
     letterSpacing: 2,
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 12.5,
     color: '#a0c7b3',
     marginTop: 4,
     marginBottom: 20,
+    letterSpacing: 0.3,
   },
   statGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 14,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
@@ -174,13 +214,14 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: '#ffd700',
+    fontFamily: 'Outfit, sans-serif',
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#8cb8a3',
     fontWeight: '700',
-    marginTop: 4,
-    letterSpacing: 0.5,
+    marginTop: 5,
+    letterSpacing: 0.6,
   },
   buttonStack: {
     width: '100%',
@@ -191,29 +232,33 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: 'center',
+    boxShadow: '0 6px 20px rgba(212, 175, 55, 0.35)',
   },
   btnPrimaryText: {
     color: '#091c13',
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '900',
     letterSpacing: 1.5,
+    fontFamily: 'Outfit, sans-serif',
   },
   secondaryRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   btnSecondary: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingVertical: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingVertical: 11,
+    paddingHorizontal: 6,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(212, 175, 55, 0.25)',
   },
   btnSecondaryText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
 });

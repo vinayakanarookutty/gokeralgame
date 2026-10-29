@@ -122,7 +122,7 @@ export const getLeaderboardAsync = async (limit = 20) => {
           score: item.score || 0,
           distance: `${item.km || '0.00'} km`,
           location: item.location || 'Kerala',
-          badge: index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`,
+          badge: index === 0 ? 'I' : index === 1 ? 'II' : index === 2 ? 'III' : `#${index + 1}`,
           createdAt: item.createdAt,
         }));
       }
@@ -142,7 +142,7 @@ export const getLeaderboardAsync = async (limit = 20) => {
         score: item.score || 0,
         distance: `${item.km || '0.00'} km`,
         location: item.location || 'Kerala',
-        badge: idx === 0 ? '👑' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`,
+        badge: idx === 0 ? 'I' : idx === 1 ? 'II' : idx === 2 ? 'III' : `#${idx + 1}`,
       }));
     }
   } catch (e) {
@@ -151,9 +151,9 @@ export const getLeaderboardAsync = async (limit = 20) => {
 
   // Default Kerala champions fallback
   return [
-    { rank: 1, name: 'Ananya Nair (Kochi)', distance: '14.8 km', score: 18450, location: 'Munnar', badge: '👑' },
-    { rank: 2, name: 'Rahul Varma (Thrissur)', distance: '12.4 km', score: 15200, location: 'Thrissur', badge: '🥈' },
-    { rank: 3, name: 'Fahad Faasil (Alappuzha)', distance: '11.2 km', score: 13980, location: 'Alappuzha', badge: '🥉' },
+    { rank: 1, name: 'Ananya Nair (Kochi)', distance: '14.8 km', score: 18450, location: 'Munnar', badge: 'I' },
+    { rank: 2, name: 'Rahul Varma (Thrissur)', distance: '12.4 km', score: 15200, location: 'Thrissur', badge: 'II' },
+    { rank: 3, name: 'Fahad Faasil (Alappuzha)', distance: '11.2 km', score: 13980, location: 'Alappuzha', badge: 'III' },
     { rank: 4, name: 'Devika Menon (Calicut)', distance: '7.5 km', score: 9850, location: 'Wayanad', badge: '#4' },
     { rank: 5, name: 'Ashwin Pillai (Trivandrum)', distance: '6.8 km', score: 8700, location: 'Kovalam', badge: '#5' },
   ];

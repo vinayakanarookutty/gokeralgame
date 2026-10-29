@@ -3,11 +3,27 @@
  * In-game Heads Up Display:
  * Hearts, KM distance, Kasavu gold coins, location badges, active power-ups,
  * control mode pill switcher, and mobile touch swipe fallback controls.
+ * Classy Kerala theme with bespoke vector icons and zero platform emojis.
  */
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CONTROL_MODES } from '../services/GestureDetector';
+import {
+  KasavuCoinIcon,
+  CoconutIcon,
+  VitalityHeartIcon,
+  BodyStanceIcon,
+  HeadMotionIcon,
+  PalmGestureIcon,
+  AudioVolumeIcon,
+  PauseIcon,
+  PlayIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+} from './Icons';
 
 const GameHUDComponent = ({
   onPause,
@@ -33,13 +49,13 @@ const GameHUDComponent = ({
   const getPowerUpLabel = () => {
     switch (activePowerUp) {
       case 'GAJA_POWER':
-        return { label: '🐘 GAJA SMASH', color: '#ffaa00' };
+        return { label: 'GAJA STRENGTH', color: '#ffaa00' };
       case 'CHENDA_BOOST':
-        return { label: '⚡ CHENDA BOOST', color: '#00e5ff' };
+        return { label: 'CHENDA TEMPO', color: '#00e5ff' };
       case 'COCONUT_SHIELD':
-        return { label: '🥥 COCONUT SHIELD', color: '#00ff99' };
+        return { label: 'COCONUT SHIELD', color: '#00ff99' };
       case 'MONSOON_MODE':
-        return { label: '🌧️ MONSOON 2X', color: '#8a2be2' };
+        return { label: 'MONSOON SURGE', color: '#c084fc' };
       default:
         return null;
     }
@@ -61,47 +77,45 @@ const GameHUDComponent = ({
   const getModeInfo = () => {
     switch (controlMode) {
       case CONTROL_MODES.HEAD_ONLY:
-        return { icon: '👤', text: 'HEAD', color: '#00e5ff' };
+        return { Icon: HeadMotionIcon, text: 'HEAD', color: '#38bdf8' };
       case CONTROL_MODES.PALM_ONLY:
-        return { icon: '✋', text: 'PALM', color: '#ffd700' };
+        return { Icon: PalmGestureIcon, text: 'PALM', color: '#ffd700' };
       default:
-        return { icon: '🧍', text: 'BODY', color: '#00ff99' };
+        return { Icon: BodyStanceIcon, text: 'BODY', color: '#00ff99' };
     }
   };
 
   const modeInfo = getModeInfo();
+  const ModeIcon = modeInfo.Icon;
 
   return (
     <View style={styles.hudOverlay} pointerEvents="box-none">
       {/* Top Header Bar */}
       <View style={styles.topBar}>
-        {/* Hearts & Status */}
+        {/* Hearts & Vitality */}
         <View style={styles.heartsRow}>
           {[1, 2, 3].map((i) => (
-            <Text
+            <VitalityHeartIcon
               key={i}
-              style={[
-                styles.heartIcon,
-                i > hearts && styles.heartLost,
-              ]}
-            >
-              ❤️
-            </Text>
+              size={18}
+              filled={i <= hearts}
+              color="#ef4444"
+            />
           ))}
         </View>
 
-        {/* Distance Traveled */}
+        {/* Distance Traveled & Location Badge */}
         <View style={styles.distanceBadge}>
           <Text style={styles.distanceValue}>{km}</Text>
           <Text style={styles.distanceUnit}>KM</Text>
           <Text style={styles.locationSmallText}>• {location.name}</Text>
         </View>
 
-        {/* Collectibles & Status */}
+        {/* Collectibles & Control Switcher */}
         <View style={styles.collectiblesRow}>
           {powerUpInfo && (
-            <View style={[styles.statPill, { borderColor: powerUpInfo.color, backgroundColor: 'rgba(5, 15, 10, 0.9)' }]}>
-              <Text style={[styles.statValue, { color: powerUpInfo.color, fontSize: 11, fontWeight: '800' }]}>
+            <View style={[styles.statPill, { borderColor: powerUpInfo.color, backgroundColor: 'rgba(5, 18, 12, 0.92)' }]}>
+              <Text style={[styles.statValue, { color: powerUpInfo.color, fontSize: 10.5, fontWeight: '800', letterSpacing: 0.5 }]}>
                 {powerUpInfo.label} {powerUpRemaining}s
               </Text>
             </View>
@@ -109,29 +123,39 @@ const GameHUDComponent = ({
 
           {/* Mode Pill (Tap to Cycle) */}
           <TouchableOpacity
-            style={[styles.statPill, styles.modePill, { borderColor: modeInfo.color }]}
+            style={[styles.statPill, styles.modePill, { borderColor: `${modeInfo.color}80` }]}
             onPress={handleCycleMode}
             accessibilityLabel="Cycle Gesture Control Mode"
+            activeOpacity={0.7}
           >
-            <Text style={styles.statIcon}>{modeInfo.icon}</Text>
+            <ModeIcon size={14} color={modeInfo.color} />
             <Text style={[styles.modePillText, { color: modeInfo.color }]}>{modeInfo.text}</Text>
           </TouchableOpacity>
 
+          {/* Kasavu Gold Coins */}
           <View style={styles.statPill}>
-            <Text style={styles.statIcon}>🪙</Text>
-            <Text style={styles.statValue}>{coins}</Text>
-          </View>
-          <View style={styles.statPill}>
-            <Text style={styles.statIcon}>🥥</Text>
-            <Text style={styles.statValue}>{coconuts}</Text>
+            <KasavuCoinIcon size={16} color="#ffd700" />
+            <Text style={[styles.statValue, { marginLeft: 4 }]}>{coins}</Text>
           </View>
 
-          {/* Audio & Pause buttons */}
-          <TouchableOpacity style={styles.iconBtn} onPress={onToggleAudio}>
-            <Text style={styles.iconBtnText}>{isMuted ? '🔇' : '🔊'}</Text>
+          {/* Tender Coconuts */}
+          <View style={styles.statPill}>
+            <CoconutIcon size={16} color="#6ee7b7" />
+            <Text style={[styles.statValue, { marginLeft: 4 }]}>{coconuts}</Text>
+          </View>
+
+          {/* Audio Toggle Button */}
+          <TouchableOpacity style={styles.iconBtn} onPress={onToggleAudio} activeOpacity={0.7}>
+            <AudioVolumeIcon size={15} muted={isMuted} color={isMuted ? '#f87171' : '#ffd700'} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={onPause}>
-            <Text style={styles.iconBtnText}>{isPaused ? '▶️' : '⏸️'}</Text>
+
+          {/* Pause / Resume Button */}
+          <TouchableOpacity style={styles.iconBtn} onPress={onPause} activeOpacity={0.7}>
+            {isPaused ? (
+              <PlayIcon size={13} color="#00ff99" />
+            ) : (
+              <PauseIcon size={13} color="#ffd700" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -141,34 +165,40 @@ const GameHUDComponent = ({
         <TouchableOpacity
           style={styles.touchLaneLeft}
           onPress={() => onSwipeControl && onSwipeControl('LEFT')}
-          activeOpacity={0.6}
+          activeOpacity={0.65}
         >
-          <Text style={styles.touchLaneHint}>◀</Text>
+          <ChevronLeftIcon size={26} color="#ffd700" />
         </TouchableOpacity>
 
         <View style={styles.touchVerticalActions}>
           <TouchableOpacity
             style={styles.touchBtnJump}
             onPress={() => onSwipeControl && onSwipeControl('JUMP')}
-            activeOpacity={0.6}
+            activeOpacity={0.65}
           >
-            <Text style={styles.touchActionText}>▲ JUMP</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ArrowUpIcon size={14} color="#00e5ff" />
+              <Text style={styles.touchActionText}>JUMP</Text>
+            </div>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.touchBtnSlide}
             onPress={() => onSwipeControl && onSwipeControl('CROUCH')}
-            activeOpacity={0.6}
+            activeOpacity={0.65}
           >
-            <Text style={styles.touchActionText}>▼ SLIDE</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ArrowDownIcon size={14} color="#ff3366" />
+              <Text style={styles.touchActionText}>SLIDE</Text>
+            </div>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
           style={styles.touchLaneRight}
           onPress={() => onSwipeControl && onSwipeControl('RIGHT')}
-          activeOpacity={0.6}
+          activeOpacity={0.65}
         >
-          <Text style={styles.touchLaneHint}>▶</Text>
+          <ChevronRightIcon size={26} color="#ffd700" />
         </TouchableOpacity>
       </View>
     </View>
@@ -194,90 +224,85 @@ const styles = StyleSheet.create({
   },
   heartsRow: {
     flexDirection: 'row',
-    gap: 4,
-    backgroundColor: 'rgba(10, 26, 18, 0.75)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 6,
+    backgroundColor: 'rgba(8, 24, 16, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.4)',
-  },
-  heartIcon: {
-    fontSize: 18,
-  },
-  heartLost: {
-    opacity: 0.25,
+    alignItems: 'center',
   },
   distanceBadge: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    backgroundColor: 'rgba(10, 26, 18, 0.85)',
+    backgroundColor: 'rgba(8, 24, 16, 0.9)',
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#ffd700',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
   },
   distanceValue: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '900',
     color: '#ffd700',
     fontFamily: 'Outfit, sans-serif',
   },
   distanceUnit: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#fff',
     marginLeft: 4,
+    letterSpacing: 0.5,
   },
   collectiblesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
   },
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 26, 18, 0.75)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 18,
+    backgroundColor: 'rgba(8, 24, 16, 0.82)',
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(212, 175, 55, 0.3)',
   },
   modePill: {
     cursor: 'pointer',
-    gap: 3,
+    gap: 4,
   },
   modePillText: {
     fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  statIcon: {
-    fontSize: 13,
-    marginRight: 3,
+    letterSpacing: 0.6,
   },
   statValue: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '800',
     color: '#fff',
+    fontFamily: 'Outfit, sans-serif',
   },
   iconBtn: {
-    backgroundColor: 'rgba(10, 26, 18, 0.75)',
-    padding: 7,
-    borderRadius: 18,
+    backgroundColor: 'rgba(8, 24, 16, 0.82)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
-  },
-  iconBtnText: {
-    fontSize: 13,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   locationSmallText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#9fe3c2',
     marginLeft: 8,
+    letterSpacing: 0.3,
   },
   touchControlsArea: {
     flexDirection: 'row',
@@ -288,28 +313,24 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   touchLaneLeft: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     backgroundColor: 'rgba(212, 175, 55, 0.15)',
     borderWidth: 1.5,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderColor: 'rgba(212, 175, 55, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   touchLaneRight: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     backgroundColor: 'rgba(212, 175, 55, 0.15)',
     borderWidth: 1.5,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderColor: 'rgba(212, 175, 55, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  touchLaneHint: {
-    fontSize: 24,
-    color: '#ffd700',
   },
   touchVerticalActions: {
     flexDirection: 'row',
@@ -318,23 +339,24 @@ const styles = StyleSheet.create({
   touchBtnJump: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: 'rgba(0, 229, 255, 0.2)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(0, 229, 255, 0.18)',
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: '#00e5ff',
   },
   touchBtnSlide: {
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: 'rgba(255, 51, 102, 0.2)',
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 51, 102, 0.18)',
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: '#ff3366',
   },
   touchActionText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#fff',
+    letterSpacing: 1,
   },
 });
 

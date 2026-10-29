@@ -10,42 +10,53 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { modelManager, ASSET_NAMES } from '../game/ModelManager';
+import {
+  BodyStanceIcon,
+  ChevronRightIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  CoconutIcon,
+  ChendaMelamIcon,
+  SnakeBoatIcon,
+  KeralaLotusOrnament,
+  PlayIcon,
+} from './Icons';
 
 const KERALA_TIPS = [
   {
-    icon: '🧍',
-    title: 'Posture Matters',
-    desc: 'Stand 1.5–2.5m from your camera for best full-body tracking precision.',
+    IconComponent: BodyStanceIcon,
+    title: 'Posture & Stance',
+    desc: 'Stand 1.5–2.5m from your camera for optimal full-body tracking precision.',
   },
   {
-    icon: '👈 👉',
+    IconComponent: ChevronRightIcon,
     title: 'Smooth Lane Shifting',
-    desc: 'Lean your shoulders left or right to change highway lanes and dodge traffic.',
+    desc: 'Lean your upper body left or right to change highway lanes and navigate around obstacles.',
   },
   {
-    icon: '🙆',
-    title: 'Jump Obstacles',
-    desc: 'Raise both arms overhead or jump to leap over barriers and logs.',
+    IconComponent: ArrowUpIcon,
+    title: 'Leap Barriers',
+    desc: 'Raise both arms overhead or leap upward to clear road barriers and logs.',
   },
   {
-    icon: '🧎',
+    IconComponent: ArrowDownIcon,
     title: 'Duck & Slide',
-    desc: 'Crouch down or lower your torso to slide safely under low bridges.',
+    desc: 'Crouch down or lower your torso to slide safely beneath low canopies and bridges.',
   },
   {
-    icon: '🥥',
+    IconComponent: CoconutIcon,
     title: 'Tender Coconuts',
-    desc: 'Collect glowing coconuts on the highway to activate your protective shield!',
+    desc: 'Collect glowing tender coconuts along the route to activate your protective shield.',
   },
   {
-    icon: '🥁',
-    title: 'Pandi Melam Beats',
-    desc: 'Authentic Chenda percussion rhythms sync dynamically with your sprint speed!',
+    IconComponent: ChendaMelamIcon,
+    title: 'Pandi Melam Rhythms',
+    desc: 'Authentic temple Chenda percussion dynamically intensifies as your sprint speed increases.',
   },
   {
-    icon: '🌴',
-    title: 'God\'s Own Country',
-    desc: 'Sprint through Alappuzha backwaters, Munnar tea hills, and Thrissur festivals.',
+    IconComponent: SnakeBoatIcon,
+    title: "God's Own Country",
+    desc: 'Sprint through Alappuzha waterways, Munnar tea hills, and festival perimeters.',
   },
 ];
 
@@ -345,8 +356,10 @@ export const LoadingScreen = ({ onReady, isRestart = false }) => {
       {/* ─── Header ─── */}
       <div className="ld-header-in">
         <View style={styles.header}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>🌴 GOD'S OWN COUNTRY 3D</Text>
+          <View style={[styles.badge, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+            <KeralaLotusOrnament size={13} color="#D4AF37" />
+            <Text style={styles.badgeText}>GOD'S OWN COUNTRY • 3D EXPEDITION</Text>
+            <KeralaLotusOrnament size={13} color="#D4AF37" />
           </View>
           <Text style={styles.title}>GOKERALAM</Text>
           <Text style={styles.subtitle}>GESTURE RUN</Text>
@@ -383,7 +396,10 @@ export const LoadingScreen = ({ onReady, isRestart = false }) => {
 
               <div className="ld-skip-btn">
                 <TouchableOpacity style={styles.skipBtn} onPress={triggerReady} activeOpacity={0.85}>
-                  <Text style={styles.skipBtnText}>START SPRINT NOW ⚡</Text>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+                    <Text style={styles.skipBtnText}>START SPRINT</Text>
+                    <PlayIcon size={12} color="#07170f" />
+                  </div>
                 </TouchableOpacity>
               </div>
             </View>
@@ -425,7 +441,7 @@ export const LoadingScreen = ({ onReady, isRestart = false }) => {
                     <div key={pill.key} className={done ? 'ld-pill-check' : ''}>
                       <View style={[styles.pill, done && styles.pillDone]}>
                         <Text style={[styles.pillText, done && styles.pillTextDone]}>
-                          {done ? '✓' : '⏳'} {pill.label}
+                          {done ? '✓' : '•'} {pill.label}
                         </Text>
                       </View>
                     </div>
@@ -453,7 +469,9 @@ export const LoadingScreen = ({ onReady, isRestart = false }) => {
         <div key={tipIndex} className={tipTransition === 'in' ? 'ld-tip-in' : 'ld-tip-out'}>
           <View style={styles.tipsCard}>
             <View style={styles.tipIconBox}>
-              <Text style={styles.tipIcon}>{currentTip.icon}</Text>
+              {currentTip.IconComponent ? (
+                <currentTip.IconComponent size={22} color="#ffd700" />
+              ) : null}
             </View>
             <View style={styles.tipContent}>
               <Text style={styles.tipTitle}>{currentTip.title}</Text>
@@ -467,7 +485,7 @@ export const LoadingScreen = ({ onReady, isRestart = false }) => {
       <div className="ld-footer-in">
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            ⚡ Pre-warming 3D shaders, Chenda beats & body tracking
+            Pre-warming 3D shaders, Chenda rhythms & physical body tracking
           </Text>
         </View>
       </div>

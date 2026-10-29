@@ -4,48 +4,65 @@
  * 1. HALF_BODY (Upper body center, lean left, lean right, crouch)
  * 2. HEAD_ONLY (Face center, tilt left, tilt right, dip down)
  * 3. PALM_ONLY (Palm center, move left, move right, lower down)
+ * Refined Kerala aesthetic, clear human visual feedback, and zero emojis.
  */
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CONTROL_MODES } from '../services/GestureDetector';
+import {
+  BodyStanceIcon,
+  HeadMotionIcon,
+  PalmGestureIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ArrowDownIcon,
+  CalibrationSlidersIcon,
+  KeralaLotusOrnament,
+  PlayIcon,
+} from './Icons';
 
 const MODE_STEPS = {
   [CONTROL_MODES.HALF_BODY]: [
     {
       id: 'NEUTRAL',
-      title: 'Stand in Center',
+      title: 'Centered Posture',
       instruction: 'Stand comfortably in the center of your camera frame.',
       targetTime: 3,
-      icon: '🧍',
+      IconComponent: BodyStanceIcon,
+      color: '#00ff99',
     },
     {
       id: 'LEFT',
       title: 'Lean Left',
-      instruction: 'Lean your upper body toward your LEFT side.',
+      instruction: 'Lean your upper torso toward your left side.',
       targetTime: 2,
-      icon: '👈',
+      IconComponent: ChevronLeftIcon,
+      color: '#60a5fa',
     },
     {
       id: 'RIGHT',
       title: 'Lean Right',
-      instruction: 'Lean your upper body toward your RIGHT side.',
+      instruction: 'Lean your upper torso toward your right side.',
       targetTime: 2,
-      icon: '👉',
+      IconComponent: ChevronRightIcon,
+      color: '#60a5fa',
     },
     {
       id: 'CROUCH',
-      title: 'Duck / Crouch',
-      instruction: 'Crouch down or lower your body to test dodging.',
+      title: 'Duck & Crouch',
+      instruction: 'Lower your torso or crouch down to test slide dodging.',
       targetTime: 2,
-      icon: '🧎',
+      IconComponent: ArrowDownIcon,
+      color: '#f472b6',
     },
     {
       id: 'DONE',
-      title: 'Calibration Complete!',
-      instruction: 'Body movements calibrated! Get ready to run through Kerala!',
+      title: 'Calibration Complete',
+      instruction: 'Upper body motion calibrated! You are ready to explore Kerala.',
       targetTime: 0,
-      icon: '✨',
+      IconComponent: KeralaLotusOrnament,
+      color: '#ffd700',
     },
   ],
   [CONTROL_MODES.HEAD_ONLY]: [
@@ -54,35 +71,40 @@ const MODE_STEPS = {
       title: 'Center Your Head',
       instruction: 'Look straight at camera with your face relaxed in the center.',
       targetTime: 3,
-      icon: '👤',
+      IconComponent: HeadMotionIcon,
+      color: '#38bdf8',
     },
     {
       id: 'LEFT',
-      title: 'Tilt / Turn Head Left',
-      instruction: 'Tilt or steer your head toward the LEFT.',
+      title: 'Tilt Head Left',
+      instruction: 'Tilt or gently steer your head toward the left.',
       targetTime: 2,
-      icon: '🗣️ ↩️',
+      IconComponent: ChevronLeftIcon,
+      color: '#38bdf8',
     },
     {
       id: 'RIGHT',
-      title: 'Tilt / Turn Head Right',
-      instruction: 'Tilt or steer your head toward the RIGHT.',
+      title: 'Tilt Head Right',
+      instruction: 'Tilt or gently steer your head toward the right.',
       targetTime: 2,
-      icon: '↪️ 🗣️',
+      IconComponent: ChevronRightIcon,
+      color: '#38bdf8',
     },
     {
       id: 'CROUCH',
       title: 'Dip Head Down',
       instruction: 'Lower your head or nod down slightly to test sliding.',
       targetTime: 2,
-      icon: '🙇',
+      IconComponent: ArrowDownIcon,
+      color: '#f472b6',
     },
     {
       id: 'DONE',
-      title: 'Head Tracking Ready!',
-      instruction: 'Your head motions are calibrated! Enjoy comfortable seated play!',
+      title: 'Head Tracking Ready',
+      instruction: 'Seated head tracking calibrated! Enjoy relaxed comfort play.',
       targetTime: 0,
-      icon: '✨',
+      IconComponent: KeralaLotusOrnament,
+      color: '#ffd700',
     },
   ],
   [CONTROL_MODES.PALM_ONLY]: [
@@ -91,35 +113,40 @@ const MODE_STEPS = {
       title: 'Hold Palm in Center',
       instruction: 'Hold up one open palm in the middle of your camera view.',
       targetTime: 3,
-      icon: '✋',
+      IconComponent: PalmGestureIcon,
+      color: '#ffd700',
     },
     {
       id: 'LEFT',
-      title: 'Move Palm Left',
-      instruction: 'Wave or shift your palm toward the LEFT.',
+      title: 'Shift Palm Left',
+      instruction: 'Glide or shift your palm toward the left side.',
       targetTime: 2,
-      icon: '👈 ✋',
+      IconComponent: ChevronLeftIcon,
+      color: '#ffd700',
     },
     {
       id: 'RIGHT',
-      title: 'Move Palm Right',
-      instruction: 'Wave or shift your palm toward the RIGHT.',
+      title: 'Shift Palm Right',
+      instruction: 'Glide or shift your palm toward the right side.',
       targetTime: 2,
-      icon: '✋ 👉',
+      IconComponent: ChevronRightIcon,
+      color: '#ffd700',
     },
     {
       id: 'CROUCH',
-      title: 'Drop Palm Down',
-      instruction: 'Lower your palm toward the bottom to test sliding.',
+      title: 'Lower Palm Down',
+      instruction: 'Lower your palm toward the bottom of the camera to test slide.',
       targetTime: 2,
-      icon: '👇 🫳',
+      IconComponent: ArrowDownIcon,
+      color: '#f472b6',
     },
     {
       id: 'DONE',
-      title: 'Palm Controller Ready!',
-      instruction: 'Your single palm air controller is calibrated and primed!',
+      title: 'Palm Sensor Primed',
+      instruction: 'Air palm gesture controller calibrated and ready!',
       targetTime: 0,
-      icon: '✨',
+      IconComponent: KeralaLotusOrnament,
+      color: '#ffd700',
     },
   ],
 };
@@ -140,11 +167,10 @@ export const CalibrationModal = ({
   const [samples, setSamples] = useState([]);
   const [calibrationResult, setCalibrationResult] = useState({
     neutralX: 0.5,
-    neutralY: 0.45,
-    leanLeftThreshold: -0.09,
-    leanRightThreshold: 0.09,
-    jumpThreshold: -0.12,
-    crouchThreshold: 0.12,
+    neutralY: 0.5,
+    leanLeftThreshold: -0.06,
+    leanRightThreshold: 0.06,
+    crouchThreshold: 0.08,
   });
 
   const steps = MODE_STEPS[activeMode] || MODE_STEPS[CONTROL_MODES.HALF_BODY];
@@ -157,41 +183,48 @@ export const CalibrationModal = ({
     if (onChangeControlMode) onChangeControlMode(mode);
   };
 
-  // Collect samples during active step
   useEffect(() => {
-    if (activeStep.id === 'DONE') return;
-
-    const interval = setInterval(() => {
-      if (currentTracking) {
-        const x = currentTracking.normX || currentTracking.dx || 0.5;
-        const y = currentTracking.normY || currentTracking.dy || 0.45;
-        setSamples((prev) => [...prev, { x, y }]);
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [stepIndex, currentTracking, activeStep.id]);
-
-  // Step countdown timer
-  useEffect(() => {
-    if (activeStep.id === 'DONE') return;
-
     setCountdown(activeStep.targetTime);
+    setSamples([]);
+  }, [stepIndex, activeMode]);
+
+  useEffect(() => {
+    if (activeStep.targetTime === 0) return;
+
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          finishCurrentStep();
+      setCountdown((c) => {
+        if (c <= 1) {
+          completeStep();
           return 0;
         }
-        return prev - 1;
+        return c - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [stepIndex, activeMode]);
+  }, [stepIndex, samples, activeMode]);
 
-  const finishCurrentStep = () => {
+  useEffect(() => {
+    if (!currentTracking) return;
+
+    let posX = 0.5;
+    let posY = 0.5;
+
+    if (activeMode === CONTROL_MODES.HEAD_ONLY && currentTracking.head) {
+      posX = currentTracking.head.x;
+      posY = currentTracking.head.y;
+    } else if (activeMode === CONTROL_MODES.PALM_ONLY && currentTracking.palm) {
+      posX = currentTracking.palm.x;
+      posY = currentTracking.palm.y;
+    } else if (currentTracking.torso) {
+      posX = currentTracking.torso.x;
+      posY = currentTracking.torso.y;
+    }
+
+    setSamples((prev) => [...prev.slice(-30), { x: posX, y: posY }]);
+  }, [currentTracking, activeMode]);
+
+  const completeStep = () => {
     if (samples.length > 0) {
       const avgX = samples.reduce((acc, s) => acc + s.x, 0) / samples.length;
       const avgY = samples.reduce((acc, s) => acc + s.y, 0) / samples.length;
@@ -226,53 +259,86 @@ export const CalibrationModal = ({
     onClose();
   };
 
+  const StepIcon = activeStep.IconComponent;
+
   return (
     <View style={styles.overlay}>
       <View style={styles.modalCard}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>GESTURE CALIBRATION</Text>
-          <Text style={styles.headerSubtitle}>Kerala Kinematic Vision System</Text>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <CalibrationSlidersIcon size={18} color="#ffd700" />
+            <Text style={styles.headerTitle}>GESTURE CALIBRATION</Text>
+          </div>
+          <Text style={styles.headerSubtitle}>Kinematic Vision Precision Calibration</Text>
         </View>
 
-        {/* Mode Selector Tabs inside Modal */}
+        {/* Mode Selector Tabs */}
         <View style={styles.modeTabsRow}>
           <TouchableOpacity
             style={[styles.modeTab, activeMode === CONTROL_MODES.HALF_BODY && styles.modeTabActive]}
             onPress={() => handleSwitchMode(CONTROL_MODES.HALF_BODY)}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.modeTabText, activeMode === CONTROL_MODES.HALF_BODY && styles.modeTabTextActive]}>
-              🧍 Half Body
-            </Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <BodyStanceIcon size={13} color={activeMode === CONTROL_MODES.HALF_BODY ? '#00ff99' : '#8cb8a3'} />
+              <Text style={[styles.modeTabText, activeMode === CONTROL_MODES.HALF_BODY && styles.modeTabTextActive]}>
+                Full Stance
+              </Text>
+            </div>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.modeTab, activeMode === CONTROL_MODES.HEAD_ONLY && styles.modeTabActive]}
             onPress={() => handleSwitchMode(CONTROL_MODES.HEAD_ONLY)}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.modeTabText, activeMode === CONTROL_MODES.HEAD_ONLY && styles.modeTabTextActive]}>
-              👤 Head Only
-            </Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <HeadMotionIcon size={13} color={activeMode === CONTROL_MODES.HEAD_ONLY ? '#38bdf8' : '#8cb8a3'} />
+              <Text style={[styles.modeTabText, activeMode === CONTROL_MODES.HEAD_ONLY && styles.modeTabTextActive]}>
+                Head Motion
+              </Text>
+            </div>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.modeTab, activeMode === CONTROL_MODES.PALM_ONLY && styles.modeTabActive]}
             onPress={() => handleSwitchMode(CONTROL_MODES.PALM_ONLY)}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.modeTabText, activeMode === CONTROL_MODES.PALM_ONLY && styles.modeTabTextActive]}>
-              ✋ Single Palm
-            </Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <PalmGestureIcon size={13} color={activeMode === CONTROL_MODES.PALM_ONLY ? '#ffd700' : '#8cb8a3'} />
+              <Text style={[styles.modeTabText, activeMode === CONTROL_MODES.PALM_ONLY && styles.modeTabTextActive]}>
+                Air Palm
+              </Text>
+            </div>
           </TouchableOpacity>
         </View>
 
-        {/* Center Visual */}
+        {/* Center Visual Step */}
         <View style={styles.body}>
-          <Text style={styles.stepIcon}>{activeStep.icon}</Text>
+          <div style={{
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: `${activeStep.color}18`,
+            border: `1.5px solid ${activeStep.color}60`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 12,
+            boxShadow: `0 0 16px ${activeStep.color}35`,
+          }}>
+            <StepIcon size={26} color={activeStep.color} />
+          </div>
+
           <Text style={styles.stepTitle}>{activeStep.title}</Text>
           <Text style={styles.stepInstruction}>{activeStep.instruction}</Text>
 
           {activeStep.id !== 'DONE' && (
             <View style={styles.countdownBox}>
               <Text style={styles.countdownNumber}>{countdown}</Text>
-              <Text style={styles.countdownLabel}>Capturing movement...</Text>
+              <Text style={styles.countdownLabel}>Capturing movement vector...</Text>
             </View>
           )}
 
@@ -291,21 +357,25 @@ export const CalibrationModal = ({
           </View>
         </View>
 
-        {/* Footer */}
+        {/* Footer Buttons */}
         <View style={styles.footer}>
           {activeStep.id === 'DONE' ? (
-            <TouchableOpacity style={styles.btnPrimary} onPress={handleFinish}>
-              <Text style={styles.btnPrimaryText}>START YOUR KERALA RUN</Text>
+            <TouchableOpacity style={styles.btnPrimary} onPress={handleFinish} activeOpacity={0.85}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <Text style={styles.btnPrimaryText}>SAVE & BEGIN SPRINT</Text>
+                <PlayIcon size={12} color="#07170f" />
+              </div>
             </TouchableOpacity>
           ) : (
             <View style={styles.footerBtnGroup}>
               <TouchableOpacity
                 style={styles.btnSecondary}
                 onPress={() => setStepIndex((i) => Math.min(steps.length - 1, i + 1))}
+                activeOpacity={0.8}
               >
                 <Text style={styles.btnSecondaryText}>Skip Step</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.btnCancel} onPress={onClose}>
+              <TouchableOpacity style={styles.btnCancel} onPress={onClose} activeOpacity={0.8}>
                 <Text style={styles.btnCancelText}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -323,7 +393,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(3, 10, 7, 0.85)',
+    backgroundColor: 'rgba(2, 10, 6, 0.92)',
+    backdropFilter: 'blur(14px)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 6000,
@@ -331,21 +402,18 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     width: '100%',
-    maxWidth: 420,
-    backgroundColor: '#0c1f17',
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#d4af37',
-    padding: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
+    maxWidth: 430,
+    backgroundColor: '#0c2318',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.65)',
+    padding: 24,
+    boxShadow: '0 16px 48px rgba(0, 0, 0, 0.8), 0 0 35px rgba(212, 175, 55, 0.22)',
     alignItems: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   headerTitle: {
     fontFamily: 'Cinzel, Georgia, serif',
@@ -353,139 +421,159 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#ffd700',
     letterSpacing: 1.5,
-    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 11,
-    color: '#a0c4b4',
-    marginTop: 2,
+    color: '#8cb8a3',
+    letterSpacing: 0.3,
   },
-  // Mode Tabs
   modeTabsRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: 10,
-    padding: 3,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.25)',
+    gap: 6,
     width: '100%',
+    marginBottom: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   modeTab: {
     flex: 1,
-    paddingVertical: 6,
+    paddingVertical: 8,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 8,
   },
   modeTabActive: {
-    backgroundColor: '#d4af37',
+    backgroundColor: 'rgba(212, 175, 55, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.45)',
   },
   modeTabText: {
     fontSize: 10.5,
-    fontWeight: '700',
-    color: '#90a89b',
+    color: '#8cb8a3',
+    fontWeight: '600',
   },
   modeTabTextActive: {
-    color: '#07170f',
-    fontWeight: '900',
+    color: '#ffd700',
+    fontWeight: '800',
   },
   body: {
     alignItems: 'center',
-    marginVertical: 8,
     width: '100%',
-  },
-  stepIcon: {
-    fontSize: 48,
-    marginBottom: 8,
+    paddingVertical: 6,
   },
   stepTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontFamily: 'Outfit, sans-serif',
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#fff',
     marginBottom: 6,
-    textAlign: 'center',
+    letterSpacing: 0.4,
   },
   stepInstruction: {
-    fontSize: 13,
-    color: '#b0d0c2',
+    fontFamily: 'Inter, sans-serif',
+    fontSize: 12.5,
+    color: '#b0d6c4',
     textAlign: 'center',
-    paddingHorizontal: 16,
-    lineHeight: 18,
+    lineHeight: 17,
+    marginBottom: 14,
+    maxWidth: 320,
   },
   countdownBox: {
     alignItems: 'center',
-    marginTop: 16,
-    padding: 10,
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
-    borderRadius: 12,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.3)',
-    width: 140,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+    minWidth: 180,
   },
   countdownNumber: {
+    fontFamily: 'Outfit, sans-serif',
     fontSize: 32,
     fontWeight: '900',
     color: '#ffd700',
   },
   countdownLabel: {
-    fontSize: 10,
-    color: '#b0d0c2',
+    fontSize: 10.5,
+    color: '#8cb8a3',
     marginTop: 2,
+    letterSpacing: 0.3,
   },
   dotsRow: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 18,
+    marginVertical: 10,
   },
   dot: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
   },
   dotActive: {
     backgroundColor: '#ffd700',
-    transform: [{ scale: 1.25 }],
+    width: 22,
+    borderRadius: 4,
   },
   dotComplete: {
     backgroundColor: '#00ff99',
   },
   footer: {
     width: '100%',
-    marginTop: 18,
+    marginTop: 10,
   },
   btnPrimary: {
-    backgroundColor: '#d4af37',
+    backgroundColor: '#ffd700',
     paddingVertical: 13,
     borderRadius: 12,
     alignItems: 'center',
+    width: '100%',
+    boxShadow: '0 4px 18px rgba(212, 175, 55, 0.35)',
   },
   btnPrimaryText: {
-    color: '#0a1a12',
-    fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 1,
+    color: '#07170f',
+    fontSize: 13.5,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    fontFamily: 'Outfit, sans-serif',
   },
   footerBtnGroup: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 10,
+    width: '100%',
   },
   btnSecondary: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingVertical: 11,
+    borderRadius: 10,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   btnSecondaryText: {
-    color: '#88a698',
+    color: '#fff',
     fontSize: 12,
+    fontWeight: '700',
   },
   btnCancel: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    flex: 1,
+    backgroundColor: 'transparent',
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 77, 77, 0.3)',
   },
   btnCancelText: {
-    color: '#e07070',
+    color: '#ff8080',
     fontSize: 12,
+    fontWeight: '600',
   },
 });

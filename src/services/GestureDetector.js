@@ -758,7 +758,7 @@ export class GestureDetector {
       }
     });
 
-    this.renderOverlayHeader(ctx, w, strokeColor, '🧍 BODY', gesture);
+    this.renderOverlayHeader(ctx, w, strokeColor, 'BODY TRACK', gesture);
     ctx.restore();
   }
 
@@ -834,7 +834,7 @@ export class GestureDetector {
     ctx.arc(barX + 2, markerY, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    this.renderOverlayHeader(ctx, w, strokeColor, '👤 HEAD', gesture);
+    this.renderOverlayHeader(ctx, w, strokeColor, 'HEAD TRACK', gesture);
     ctx.restore();
   }
 
@@ -907,7 +907,7 @@ export class GestureDetector {
     ctx.fillStyle = gesture.includes('RIGHT') ? '#FF8C00' : 'rgba(255, 255, 255, 0.3)';
     ctx.fillText('R ▶', w - 24, h / 2);
 
-    this.renderOverlayHeader(ctx, w, strokeColor, '✋ PALM', gesture);
+    this.renderOverlayHeader(ctx, w, strokeColor, 'PALM TRACK', gesture);
     ctx.restore();
   }
 
@@ -922,7 +922,7 @@ export class GestureDetector {
     ctx.font = 'bold 10px Outfit, sans-serif';
     ctx.fillStyle = 'rgba(255, 215, 0, 0.6)';
     ctx.textAlign = 'center';
-    ctx.fillText('✋ RAISE SINGLE PALM', w / 2, h / 2);
+    ctx.fillText('RAISE SINGLE PALM', w / 2, h / 2);
     ctx.restore();
   }
 

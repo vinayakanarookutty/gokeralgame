@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, Image, StyleSheet, Animated } from 'react-native';
+import { KeralaLotusOrnament } from './Icons';
 
 // Inject CSS keyframes for premium animations
 const injectSplashStyles = () => {
@@ -215,8 +216,10 @@ export const SplashScreen = ({ onFinish }) => {
 
         {/* Badge */}
         <div className="splash-badge-reveal">
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>🌴 GOD'S OWN COUNTRY</Text>
+          <View style={[styles.badge, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+            <KeralaLotusOrnament size={13} color="#FFDF73" />
+            <Text style={styles.badgeText}>GOD'S OWN COUNTRY</Text>
+            <KeralaLotusOrnament size={13} color="#FFDF73" />
           </View>
         </div>
 

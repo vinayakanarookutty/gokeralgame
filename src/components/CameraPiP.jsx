@@ -12,6 +12,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GestureDetector, CONTROL_MODES } from '../services/GestureDetector';
+import {
+  CalibrationSlidersIcon,
+  BodyStanceIcon,
+  HeadMotionIcon,
+  PalmGestureIcon,
+} from './Icons';
 
 // 33 Landmark Skeleton Bone Connections for Canvas Rendering
 const POSE_CONNECTIONS = [
@@ -282,11 +288,11 @@ const CameraPiPComponent = ({
   const getModeTitle = () => {
     switch (controlMode) {
       case CONTROL_MODES.HEAD_ONLY:
-        return '👤 HEAD TRACK';
+        return 'HEAD TRACK';
       case CONTROL_MODES.PALM_ONLY:
-        return '✋ PALM AIR';
+        return 'PALM TRACK';
       default:
-        return isPythonConnected ? '🐍 PYTHON POSE' : '🧍 BODY POSE';
+        return isPythonConnected ? 'PRECISION POSE' : 'BODY TRACK';
     }
   };
 
@@ -305,7 +311,7 @@ const CameraPiPComponent = ({
             onPress={onOpenCalibration}
             accessibilityLabel="Calibrate Body Gestures"
           >
-            <Text style={styles.headerBtnText}>⚙️</Text>
+            <CalibrationSlidersIcon size={13} color="#ffd700" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -331,14 +337,17 @@ const CameraPiPComponent = ({
               onPress={() => onChangeControlMode && onChangeControlMode(CONTROL_MODES.HALF_BODY)}
               activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  styles.modeTabBtnText,
-                  controlMode === CONTROL_MODES.HALF_BODY && styles.modeTabBtnTextActive,
-                ]}
-              >
-                🧍 Body
-              </Text>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                <BodyStanceIcon size={11} color={controlMode === CONTROL_MODES.HALF_BODY ? '#07170f' : '#a0b8aa'} />
+                <Text
+                  style={[
+                    styles.modeTabBtnText,
+                    controlMode === CONTROL_MODES.HALF_BODY && styles.modeTabBtnTextActive,
+                  ]}
+                >
+                  Body
+                </Text>
+              </div>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -349,14 +358,17 @@ const CameraPiPComponent = ({
               onPress={() => onChangeControlMode && onChangeControlMode(CONTROL_MODES.HEAD_ONLY)}
               activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  styles.modeTabBtnText,
-                  controlMode === CONTROL_MODES.HEAD_ONLY && styles.modeTabBtnTextActive,
-                ]}
-              >
-                👤 Head
-              </Text>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                <HeadMotionIcon size={11} color={controlMode === CONTROL_MODES.HEAD_ONLY ? '#07170f' : '#a0b8aa'} />
+                <Text
+                  style={[
+                    styles.modeTabBtnText,
+                    controlMode === CONTROL_MODES.HEAD_ONLY && styles.modeTabBtnTextActive,
+                  ]}
+                >
+                  Head
+                </Text>
+              </div>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -367,20 +379,34 @@ const CameraPiPComponent = ({
               onPress={() => onChangeControlMode && onChangeControlMode(CONTROL_MODES.PALM_ONLY)}
               activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  styles.modeTabBtnText,
-                  controlMode === CONTROL_MODES.PALM_ONLY && styles.modeTabBtnTextActive,
-                ]}
-              >
-                ✋ Palm
-              </Text>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                <PalmGestureIcon size={11} color={controlMode === CONTROL_MODES.PALM_ONLY ? '#07170f' : '#a0b8aa'} />
+                <Text
+                  style={[
+                    styles.modeTabBtnText,
+                    controlMode === CONTROL_MODES.PALM_ONLY && styles.modeTabBtnTextActive,
+                  ]}
+                >
+                  Palm
+                </Text>
+              </div>
             </TouchableOpacity>
           </View>
 
           {cameraError && !isPythonConnected ? (
             <View style={styles.errorBox}>
-              <Text style={styles.errorIcon}>📷</Text>
+              <div style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: 'rgba(255, 77, 77, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 6,
+              }}>
+                <span style={{ fontSize: 13, color: '#ff6b6b', fontWeight: 800 }}>!</span>
+              </div>
               <Text style={styles.errorText}>{cameraError}</Text>
               <TouchableOpacity
                 style={styles.retryBtn}
